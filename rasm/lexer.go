@@ -14,16 +14,16 @@ type Position struct {
 type TokenId uint
 
 const (
-	EOF = iota
-	ILLEGAL
-	SECTION
-	LABEL
-	COMMA
+	Eof = iota
+	Illegal
+	Section
+	Label
+	Comma
 
-	NAME
-	HEX   // TODO
-	OCTAL // TODO
-	DECIMAL
+	Name
+	Hex   // TODO
+	Octal // TODO
+	Decimal
 )
 
 type Token struct {
@@ -53,7 +53,7 @@ func (l *Lexer) Next() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{pos: l.pos, id: EOF, raw: ""}
+				return Token{pos: l.pos, id: Eof, raw: ""}
 			}
 			panic(err)
 		}
@@ -61,7 +61,7 @@ func (l *Lexer) Next() Token {
 		l.pos.col++
 		switch r {
 		case ',':
-			return Token{pos: l.pos, id: COMMA, raw: ","}
+			return Token{pos: l.pos, id: Comma, raw: ","}
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -73,7 +73,7 @@ func (l *Lexer) Next() Token {
 				return l.lexName()
 			}
 
-			return Token{pos: l.pos, id: ILLEGAL, raw: string(r)}
+			return Token{pos: l.pos, id: Illegal, raw: string(r)}
 		}
 	}
 }
@@ -92,7 +92,7 @@ func (l *Lexer) lexDecimal() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{pos: pos, id: DECIMAL, raw: raw}
+				return Token{pos: pos, id: Decimal, raw: raw}
 			}
 			panic(err)
 		}
@@ -101,7 +101,7 @@ func (l *Lexer) lexDecimal() Token {
 			raw = raw + string(r)
 		} else {
 			l.unread()
-			return Token{pos: pos, id: DECIMAL, raw: raw}
+			return Token{pos: pos, id: Decimal, raw: raw}
 		}
 	}
 }
@@ -122,7 +122,7 @@ func (l *Lexer) lexName() Token {
 			raw = raw + string(r)
 		} else if r == ':' {
 			// Keywords can also be labels. May change later.
-			return Token{pos: pos, id: LABEL, raw: raw}
+			return Token{pos: pos, id: Label, raw: raw}
 		} else {
 			l.unread()
 			return Token{pos: pos, id: nameTokenId(raw), raw: raw}
@@ -133,8 +133,8 @@ func (l *Lexer) lexName() Token {
 func nameTokenId(nm string) TokenId {
 	switch nm {
 	case "section":
-		return SECTION
+		return Section
 	default:
-		return NAME
+		return Name
 	}
 }

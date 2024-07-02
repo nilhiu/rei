@@ -20,7 +20,7 @@ func TestNameLexing(t *testing.T) {
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
@@ -38,7 +38,7 @@ func TestDecimalLexing(t *testing.T) {
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
@@ -51,19 +51,19 @@ func TestIllegalLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id() != rasm.ILLEGAL && tok.Raw() != expected[i] {
+		if tok.Id() != rasm.Illegal && tok.Raw() != expected[i] {
 			t.Fatalf(`Illegal lexing let through. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
 func TestKeywordLexing(t *testing.T) {
 	expected := []string{"section", "sectionnot", "section_", ","}
-	expectedId := []rasm.TokenId{rasm.SECTION, rasm.NAME, rasm.NAME, rasm.COMMA}
+	expectedId := []rasm.TokenId{rasm.Section, rasm.Name, rasm.Name, rasm.Comma}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -75,7 +75,7 @@ func TestKeywordLexing(t *testing.T) {
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
@@ -88,12 +88,12 @@ func TestLabelLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id() != rasm.LABEL && tok.Raw() != expected[i] {
+		if tok.Id() != rasm.Label && tok.Raw() != expected[i] {
 			t.Fatalf(`Label incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
