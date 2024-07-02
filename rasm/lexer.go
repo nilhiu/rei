@@ -66,15 +66,11 @@ func (l *Lexer) Next() Token {
 			if unicode.IsSpace(r) {
 				continue
 			} else if unicode.IsDigit(r) {
-				pos := l.pos
 				l.unread()
-				raw := l.lexDecimal()
-				return Token{pos: pos, id: DECIMAL, raw: raw}
+				return l.lexDecimal()
 			} else if unicode.IsLetter(r) {
-				pos := l.pos
 				l.unread()
-				raw := l.lexName()
-				return Token{pos: pos, id: NAME, raw: raw}
+				return l.lexName()
 			}
 
 			return Token{pos: l.pos, id: ILLEGAL, raw: string(r)}
@@ -89,13 +85,14 @@ func (l *Lexer) unread() {
 	l.pos.col--
 }
 
-func (l *Lexer) lexDecimal() string {
+func (l *Lexer) lexDecimal() Token {
+	pos := l.pos
 	var raw string
 	for {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return raw
+				return Token{pos: pos, id: DECIMAL, raw: raw}
 			}
 			panic(err)
 		}
@@ -104,27 +101,40 @@ func (l *Lexer) lexDecimal() string {
 			raw = raw + string(r)
 		} else {
 			l.unread()
-			return raw
+			return Token{pos: pos, id: DECIMAL, raw: raw}
 		}
 	}
 }
 
-func (l *Lexer) lexName() string {
+func (l *Lexer) lexName() Token {
+	pos := l.pos
 	var raw string
 	for {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return raw
+				return Token{pos: pos, id: nameTokenId(raw), raw: raw}
 			}
 			panic(err)
 		}
 
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
 			raw = raw + string(r)
+		} else if r == ':' {
+			// Keywords can also be labels. May change later.
+			return Token{pos: pos, id: LABEL, raw: raw}
 		} else {
 			l.unread()
-			return raw
+			return Token{pos: pos, id: nameTokenId(raw), raw: raw}
 		}
+	}
+}
+
+func nameTokenId(nm string) TokenId {
+	switch nm {
+	case "section":
+		return SECTION
+	default:
+		return NAME
 	}
 }

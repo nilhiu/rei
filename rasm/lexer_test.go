@@ -60,3 +60,40 @@ func TestIllegalLexing(t *testing.T) {
 		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
+
+func TestKeywordLexing(t *testing.T) {
+	expected := []string{"section", "sectionnot", "section_", ","}
+	expectedId := []rasm.TokenId{rasm.SECTION, rasm.NAME, rasm.NAME, rasm.COMMA}
+	lxr := rasm.NewLexer(
+		strings.NewReader(strings.Join(expected, " ")),
+	)
+
+	for i := 0; i < len(expected); i++ {
+		tok := lxr.Next()
+		if tok.Id() != expectedId[i] && tok.Raw() != expected[i] {
+			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
+		}
+	}
+
+	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
+	}
+}
+
+func TestLabelLexing(t *testing.T) {
+	expected := []string{"label", "some_1", "section"}
+	lxr := rasm.NewLexer(
+		strings.NewReader(strings.Join(expected, ": ")),
+	)
+
+	for i := 0; i < len(expected); i++ {
+		tok := lxr.Next()
+		if tok.Id() != rasm.LABEL && tok.Raw() != expected[i] {
+			t.Fatalf(`Label incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
+		}
+	}
+
+	if tok := lxr.Next(); tok.Id() != rasm.EOF {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
+	}
+}
