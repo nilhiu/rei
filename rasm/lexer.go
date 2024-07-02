@@ -3,6 +3,7 @@ package rasm
 import (
 	"bufio"
 	"io"
+	"strings"
 	"unicode"
 )
 
@@ -16,6 +17,8 @@ type TokenId uint
 const (
 	Eof = iota
 	Illegal
+	Instruction
+	Register
 	Section
 	Label
 	Comma
@@ -26,6 +29,9 @@ const (
 	Decimal
 )
 
+// The `id` field contains the above `TokenId` constants in the first 5 bits,
+// and in the cases of `Instruction` and `Register` the upper 27 (or 59 if 64-bit)
+// bits contains the instruction/register identifiers.
 type Token struct {
 	pos Position
 	id  TokenId
@@ -131,10 +137,17 @@ func (l *Lexer) lexName() Token {
 }
 
 func nameTokenId(nm string) TokenId {
-	switch nm {
+	name := strings.ToLower(nm)
+	switch name {
 	case "section":
 		return Section
 	default:
-		return Name
+		if instr := x86InstrSearchMap[name]; instr != 0 {
+			return TokenId(Instruction | instr)
+		} else if reg := x86RegisterSearchMap[name]; reg != 0 {
+			return TokenId(Register | reg)
+		} else {
+			return Name
+		}
 	}
 }

@@ -61,9 +61,9 @@ func TestIllegalLexing(t *testing.T) {
 	}
 }
 
-func TestKeywordLexing(t *testing.T) {
-	expected := []string{"section", "sectionnot", "section_", ","}
-	expectedId := []rasm.TokenId{rasm.Section, rasm.Name, rasm.Name, rasm.Comma}
+func TestGeneralKeywordLexing(t *testing.T) {
+	expected := []string{"section", "sEcTiOn", "SECTION", "sectionnot", "section_", ","}
+	expectedId := []rasm.TokenId{rasm.Section, rasm.Section, rasm.Section, rasm.Name, rasm.Name, rasm.Comma}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -73,6 +73,34 @@ func TestKeywordLexing(t *testing.T) {
 		if tok.Id() != expectedId[i] && tok.Raw() != expected[i] {
 			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
+	}
+
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
+	}
+}
+
+func TestX86KeywordLexing(t *testing.T) {
+	expected := []string{
+		"rax", "rcx", "rdx", "rBx", "rsi", "rDi", "rsp", "rbp", "r9", "r10", "r11", "R12", "r13", "r14",
+		"r15", "eax", "ecx", "edX", "ebx", "esI", "edi", "esp", "ebp", "r9d", "r10d", "r11d", "r12d",
+		"r13D", "r14d", "r15d", "Ax", "Cx", "Dx", "bx", "si", "di", "sp", "bp", "r9W", "r10w", "r11w",
+		"r12w", "r13W", "r14w", "R15w", "al", "cl", "dl", "bL", "sil", "diL", "sPl", "bpl", "r9b",
+		"r10b", "r11b", "r12b", "r13b", "r14B", "r15b", "ah", "Ch", "dh", "bH", "mOv",
+	}
+	lxr := rasm.NewLexer(
+		strings.NewReader(strings.Join(expected, " ")),
+	)
+
+	for i := 0; i < len(expected)-1; i++ {
+		tok := lxr.Next()
+		if (tok.Id()&0x1F) != rasm.Register && tok.Raw() != expected[i] {
+			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
+		}
+	}
+
+	if tok := lxr.Next(); (tok.Id() & 0x1F) != rasm.Instruction {
+		t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[len(expected)-1], tok.Raw())
 	}
 
 	if tok := lxr.Next(); tok.Id() != rasm.Eof {
