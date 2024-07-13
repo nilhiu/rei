@@ -8,8 +8,8 @@ import (
 )
 
 type Position struct {
-	line uint
-	col  uint
+	Line uint
+	Col  uint
 }
 
 type TokenId uint
@@ -33,14 +33,10 @@ const (
 // and in the cases of `Instruction` and `Register` the upper 27 (or 59 if 64-bit)
 // bits contains the instruction/register identifiers.
 type Token struct {
-	pos Position
-	id  TokenId
-	raw string
+	Pos Position
+	Id  TokenId
+	Raw string
 }
-
-func (t *Token) Pos() Position { return t.pos }
-func (t *Token) Id() TokenId   { return t.id }
-func (t *Token) Raw() string   { return t.raw }
 
 type Lexer struct {
 	rd  *bufio.Reader
@@ -50,7 +46,7 @@ type Lexer struct {
 func NewLexer(rd io.Reader) *Lexer {
 	return &Lexer{
 		rd:  bufio.NewReader(rd),
-		pos: Position{line: 1, col: 0},
+		pos: Position{Line: 1, Col: 0},
 	}
 }
 
@@ -59,15 +55,15 @@ func (l *Lexer) Next() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{pos: l.pos, id: Eof, raw: ""}
+				return Token{Pos: l.pos, Id: Eof, Raw: ""}
 			}
 			panic(err)
 		}
 
-		l.pos.col++
+		l.pos.Col++
 		switch r {
 		case ',':
-			return Token{pos: l.pos, id: Comma, raw: ","}
+			return Token{Pos: l.pos, Id: Comma, Raw: ","}
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -79,7 +75,7 @@ func (l *Lexer) Next() Token {
 				return l.lexName()
 			}
 
-			return Token{pos: l.pos, id: Illegal, raw: string(r)}
+			return Token{Pos: l.pos, Id: Illegal, Raw: string(r)}
 		}
 	}
 }
@@ -88,7 +84,7 @@ func (l *Lexer) unread() {
 	if err := l.rd.UnreadRune(); err != nil {
 		panic(err)
 	}
-	l.pos.col--
+	l.pos.Col--
 }
 
 func (l *Lexer) lexDecimal() Token {
@@ -98,7 +94,7 @@ func (l *Lexer) lexDecimal() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{pos: pos, id: Decimal, raw: raw}
+				return Token{Pos: pos, Id: Decimal, Raw: raw}
 			}
 			panic(err)
 		}
@@ -107,7 +103,7 @@ func (l *Lexer) lexDecimal() Token {
 			raw = raw + string(r)
 		} else {
 			l.unread()
-			return Token{pos: pos, id: Decimal, raw: raw}
+			return Token{Pos: pos, Id: Decimal, Raw: raw}
 		}
 	}
 }
@@ -119,7 +115,7 @@ func (l *Lexer) lexName() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{pos: pos, id: nameTokenId(raw), raw: raw}
+				return Token{Pos: pos, Id: nameTokenId(raw), Raw: raw}
 			}
 			panic(err)
 		}
@@ -128,10 +124,10 @@ func (l *Lexer) lexName() Token {
 			raw = raw + string(r)
 		} else if r == ':' {
 			// Keywords can also be labels. May change later.
-			return Token{pos: pos, id: Label, raw: raw}
+			return Token{Pos: pos, Id: Label, Raw: raw}
 		} else {
 			l.unread()
-			return Token{pos: pos, id: nameTokenId(raw), raw: raw}
+			return Token{Pos: pos, Id: nameTokenId(raw), Raw: raw}
 		}
 	}
 }
