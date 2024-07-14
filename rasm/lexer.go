@@ -182,9 +182,6 @@ func (l *Lexer) lexDecimal() Token {
 	for {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
-			if err == io.EOF {
-				return Token{Pos: pos, Id: Decimal, Raw: raw}
-			}
 			panic(err)
 		}
 
