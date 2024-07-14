@@ -61,12 +61,17 @@ func (l *Lexer) Next() Token {
 			panic(err)
 		}
 
+		pos := l.pos
 		l.pos.Col++
 		switch r {
 		case ',':
-			return Token{Pos: l.pos, Id: Comma, Raw: ","}
+			return Token{Pos: pos, Id: Comma, Raw: ","}
 		case '0':
 			return l.lexZero()
+		case '\n':
+			l.pos.Line++
+			l.pos.Col = 0
+			continue
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -78,7 +83,7 @@ func (l *Lexer) Next() Token {
 				return l.lexName()
 			}
 
-			return Token{Pos: l.pos, Id: Illegal, Raw: string(r)}
+			return Token{Pos: pos, Id: Illegal, Raw: string(r)}
 		}
 	}
 }
@@ -110,6 +115,7 @@ func (l *Lexer) lexZero() Token {
 			l.unread()
 			tok := l.lexDecimal()
 			tok.Raw = string('0') + tok.Raw
+			tok.Pos.Col--
 			return tok
 		} else {
 			l.unread()
@@ -120,6 +126,7 @@ func (l *Lexer) lexZero() Token {
 
 func (l *Lexer) lexHex() Token {
 	pos := l.pos
+	pos.Col -= 2
 	var raw string
 	for {
 		r, _, err := l.rd.ReadRune()
@@ -147,6 +154,7 @@ func (l *Lexer) lexHex() Token {
 
 func (l *Lexer) lexOctal() Token {
 	pos := l.pos
+	pos.Col -= 2
 	var raw string
 	for {
 		r, _, err := l.rd.ReadRune()
@@ -180,6 +188,7 @@ func (l *Lexer) lexDecimal() Token {
 			panic(err)
 		}
 
+		l.pos.Col++
 		if unicode.IsDigit(r) {
 			raw = raw + string(r)
 		} else {
@@ -201,6 +210,7 @@ func (l *Lexer) lexName() Token {
 			panic(err)
 		}
 
+		l.pos.Col++
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
 			raw = raw + string(r)
 		} else if r == ':' {
