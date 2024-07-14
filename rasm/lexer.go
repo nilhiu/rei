@@ -24,8 +24,8 @@ const (
 	Comma
 
 	Name
-	Hex   // TODO
-	Octal // TODO
+	Hex
+	Octal
 	Decimal
 )
 
@@ -50,6 +50,7 @@ func NewLexer(rd io.Reader) *Lexer {
 	}
 }
 
+// TODO: Add error checking in applicable lex* functions if raw == "" (first character is illegal).
 func (l *Lexer) Next() Token {
 	for {
 		r, _, err := l.rd.ReadRune()
@@ -64,6 +65,8 @@ func (l *Lexer) Next() Token {
 		switch r {
 		case ',':
 			return Token{Pos: l.pos, Id: Comma, Raw: ","}
+		case '0':
+			return l.lexZero()
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -85,6 +88,84 @@ func (l *Lexer) unread() {
 		panic(err)
 	}
 	l.pos.Col--
+}
+
+func (l *Lexer) lexZero() Token {
+	r, _, err := l.rd.ReadRune()
+	if err != nil {
+		if err == io.EOF {
+			return Token{Pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, Id: Decimal, Raw: "0"}
+		}
+		panic(err)
+	}
+
+	l.pos.Col++
+	switch r {
+	case 'x', 'X':
+		return l.lexHex()
+	case 'o', 'O':
+		return l.lexOctal()
+	default:
+		if unicode.IsDigit(r) {
+			l.unread()
+			tok := l.lexDecimal()
+			tok.Raw = string('0') + tok.Raw
+			return tok
+		} else {
+			l.unread()
+			return Token{Pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, Id: Decimal, Raw: "0"}
+		}
+	}
+}
+
+func (l *Lexer) lexHex() Token {
+	pos := l.pos
+	var raw string
+	for {
+		r, _, err := l.rd.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return Token{Pos: pos, Id: Hex, Raw: raw}
+			}
+			panic(err)
+		}
+
+		l.pos.Col++
+		switch r {
+		case 'A', 'B', 'C', 'D', 'E', 'F':
+			raw = raw + string(r)
+		default:
+			if unicode.IsDigit(r) {
+				raw = raw + string(r)
+			} else {
+				l.unread()
+				return Token{Pos: pos, Id: Hex, Raw: raw}
+			}
+		}
+	}
+}
+
+func (l *Lexer) lexOctal() Token {
+	pos := l.pos
+	var raw string
+	for {
+		r, _, err := l.rd.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return Token{Pos: pos, Id: Octal, Raw: raw}
+			}
+			panic(err)
+		}
+
+		l.pos.Col++
+		switch r {
+		case '0', '1', '2', '3', '4', '5', '6', '7':
+			raw = raw + string(r)
+		default:
+			l.unread()
+			return Token{Pos: pos, Id: Octal, Raw: raw}
+		}
+	}
 }
 
 func (l *Lexer) lexDecimal() Token {

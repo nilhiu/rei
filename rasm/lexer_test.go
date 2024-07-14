@@ -16,7 +16,7 @@ func TestNameLexing(t *testing.T) {
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
 		if tok.Raw != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected %q, got: %q`, expected[i], tok.Raw)
+			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw)
 		}
 	}
 
@@ -26,7 +26,7 @@ func TestNameLexing(t *testing.T) {
 }
 
 func TestDecimalLexing(t *testing.T) {
-	expected := []string{"12345678", "2024", "7", "1", "000000", "389", "471208939810923819716278"}
+	expected := []string{"12345678", "2024", "7", "1", "000000", "389", "471208939810923819716278", "0", "0"}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -34,7 +34,43 @@ func TestDecimalLexing(t *testing.T) {
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
 		if tok.Raw != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected %q, got: %q`, expected[i], tok.Raw)
+			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw)
+		}
+	}
+
+	if tok := lxr.Next(); tok.Id != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	}
+}
+
+func TestHexLexing(t *testing.T) {
+	expected := []string{"0x2830FA", "0X000A", "0xABCDEF0123456789", "0x123456789", "0XABFEF7510"}
+	lxr := rasm.NewLexer(
+		strings.NewReader(strings.Join(expected, " ")),
+	)
+
+	for i := 0; i < len(expected); i++ {
+		tok := lxr.Next()
+		if tok.Raw != expected[i] && tok.Id != rasm.Hex {
+			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw)
+		}
+	}
+
+	if tok := lxr.Next(); tok.Id != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	}
+}
+
+func TestOctalLexing(t *testing.T) {
+	expected := []string{"0o273012", "0O1234", "0o01234567", "0O1234567", "0o12541237"}
+	lxr := rasm.NewLexer(
+		strings.NewReader(strings.Join(expected, " ")),
+	)
+
+	for i := 0; i < len(expected); i++ {
+		tok := lxr.Next()
+		if tok.Raw != expected[i] && tok.Id != rasm.Octal {
+			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw)
 		}
 	}
 
