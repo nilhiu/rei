@@ -50,7 +50,6 @@ func NewLexer(rd io.Reader) *Lexer {
 	}
 }
 
-// TODO: Add error checking in applicable lex* functions if raw == "" (first character is illegal).
 func (l *Lexer) Next() Token {
 	for {
 		r, _, err := l.rd.ReadRune()
@@ -146,6 +145,9 @@ func (l *Lexer) lexHex() Token {
 				raw = raw + string(r)
 			} else {
 				l.unread()
+				if raw == "" {
+					return Token{Pos: pos, Id: Illegal, Raw: "hex prefix without logical continuation"}
+				}
 				return Token{Pos: pos, Id: Hex, Raw: raw}
 			}
 		}
@@ -171,6 +173,9 @@ func (l *Lexer) lexOctal() Token {
 			raw = raw + string(r)
 		default:
 			l.unread()
+			if raw == "" {
+				return Token{Pos: pos, Id: Illegal, Raw: "octal prefix without logical continuation"}
+			}
 			return Token{Pos: pos, Id: Octal, Raw: raw}
 		}
 	}
