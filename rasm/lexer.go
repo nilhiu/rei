@@ -23,7 +23,7 @@ const (
 	Label
 	Comma
 
-	Name
+	Identifier
 	Hex
 	Octal
 	Decimal
@@ -79,7 +79,7 @@ func (l *Lexer) Next() Token {
 				return l.lexDecimal()
 			} else if unicode.IsLetter(r) || r == '_' || r == '.' {
 				l.unread()
-				return l.lexName()
+				return l.lexIdentifier()
 			}
 
 			return Token{Pos: pos, Id: Illegal, Raw: string(r)}
@@ -200,14 +200,14 @@ func (l *Lexer) lexDecimal() Token {
 	}
 }
 
-func (l *Lexer) lexName() Token {
+func (l *Lexer) lexIdentifier() Token {
 	pos := l.pos
 	var raw string
 	for {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{Pos: pos, Id: nameTokenId(raw), Raw: raw}
+				return Token{Pos: pos, Id: identTokenId(raw), Raw: raw}
 			}
 			panic(err)
 		}
@@ -220,23 +220,23 @@ func (l *Lexer) lexName() Token {
 			return Token{Pos: pos, Id: Label, Raw: raw}
 		} else {
 			l.unread()
-			return Token{Pos: pos, Id: nameTokenId(raw), Raw: raw}
+			return Token{Pos: pos, Id: identTokenId(raw), Raw: raw}
 		}
 	}
 }
 
-func nameTokenId(nm string) TokenId {
-	name := strings.ToLower(nm)
-	switch name {
+func identTokenId(id string) TokenId {
+	ident := strings.ToLower(id)
+	switch ident {
 	case "section":
 		return Section
 	default:
-		if instr := x86InstrSearchMap[name]; instr != 0 {
+		if instr := x86InstrSearchMap[ident]; instr != 0 {
 			return TokenId(Instruction | instr)
-		} else if reg := x86RegisterSearchMap[name]; reg != 0 {
+		} else if reg := x86RegisterSearchMap[ident]; reg != 0 {
 			return TokenId(Register | reg)
 		} else {
-			return Name
+			return Identifier
 		}
 	}
 }

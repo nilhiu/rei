@@ -7,7 +7,7 @@ import (
 	"github.com/nilhiu/rei/rasm"
 )
 
-func TestNameLexing(t *testing.T) {
+func TestIdentifierLexing(t *testing.T) {
 	expected := []string{"mov", "raw", "r1", "r31", "lo_bit", "open.win", "slo_._mo", ".text", "_.o"}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
@@ -63,7 +63,7 @@ func TestHexLexing(t *testing.T) {
 
 func TestIllegalHexLexing(t *testing.T) {
 	expected := []string{"0x", "0xL", "0XX"}
-	expected_id := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Name, rasm.Illegal, rasm.Name}
+	expected_id := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Identifier, rasm.Illegal, rasm.Identifier}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -96,7 +96,7 @@ func TestOctalLexing(t *testing.T) {
 
 func TestIllegalOctalLexing(t *testing.T) {
 	expected := []string{"0o", "0oL", "0OO"}
-	expected_id := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Name, rasm.Illegal, rasm.Name}
+	expected_id := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Identifier, rasm.Illegal, rasm.Identifier}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -129,7 +129,7 @@ func TestIllegalLexing(t *testing.T) {
 
 func TestGeneralKeywordLexing(t *testing.T) {
 	expected := []string{"section", "sEcTiOn", "SECTION", "sectionnot", "section_", ","}
-	expectedId := []rasm.TokenId{rasm.Section, rasm.Section, rasm.Section, rasm.Name, rasm.Name, rasm.Comma}
+	expectedId := []rasm.TokenId{rasm.Section, rasm.Section, rasm.Section, rasm.Identifier, rasm.Identifier, rasm.Comma}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
