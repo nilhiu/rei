@@ -128,8 +128,11 @@ func TestIllegalLexing(t *testing.T) {
 }
 
 func TestGeneralKeywordLexing(t *testing.T) {
-	expected := []string{"section", "sEcTiOn", "SECTION", "sectionnot", "section_", ","}
-	expectedId := []rasm.TokenId{rasm.Section, rasm.Section, rasm.Section, rasm.Identifier, rasm.Identifier, rasm.Comma}
+	expected := []string{"section", "sEcTiOn", "SECTION", "sectionnot", "section_", ",", ":"}
+	expectedId := []rasm.TokenId{
+		rasm.Section, rasm.Section, rasm.Section, rasm.Identifier, rasm.Identifier, rasm.Comma,
+		rasm.Colon,
+	}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -174,24 +177,6 @@ func TestX86KeywordLexing(t *testing.T) {
 	}
 }
 
-func TestLabelLexing(t *testing.T) {
-	expected := []string{"label", "some_1", "section"}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, ": ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Id != rasm.Label && tok.Raw != expected[i] {
-			t.Fatalf(`Label incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw)
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
-	}
-}
-
 func TestLexPositioning(t *testing.T) {
 	str := "\nname mov,\n0xAAFF0 0o1234 0 0 000\n12418\n\n\nsection\n    label: random_name\n19370 0"
 	expected := []rasm.Position{
@@ -199,8 +184,8 @@ func TestLexPositioning(t *testing.T) {
 		{Line: 2, Col: 9}, {Line: 3, Col: 0}, {Line: 3, Col: 8}, {Line: 3, Col: 15},
 		{Line: 3, Col: 17}, {Line: 3, Col: 19}, {Line: 3, Col: 22}, {Line: 4, Col: 0},
 		{Line: 4, Col: 5}, {Line: 5, Col: 0}, {Line: 6, Col: 0}, {Line: 7, Col: 0},
-		{Line: 7, Col: 7}, {Line: 8, Col: 4}, {Line: 8, Col: 11}, {Line: 8, Col: 22},
-		{Line: 9, Col: 0}, {Line: 9, Col: 6},
+		{Line: 7, Col: 7}, {Line: 8, Col: 4}, {Line: 8, Col: 9}, {Line: 8, Col: 11},
+		{Line: 8, Col: 22}, {Line: 9, Col: 0}, {Line: 9, Col: 6},
 	}
 	lxr := rasm.NewLexer(strings.NewReader(str))
 

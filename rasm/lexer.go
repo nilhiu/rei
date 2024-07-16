@@ -20,8 +20,8 @@ const (
 	Instruction
 	Register
 	Section
-	Label
 	Comma
+	Colon
 	Newline
 
 	Identifier
@@ -66,6 +66,8 @@ func (l *Lexer) Next() Token {
 		switch r {
 		case ',':
 			return Token{Pos: pos, Id: Comma, Raw: ","}
+		case ':':
+			return Token{Pos: pos, Id: Colon, Raw: ":"}
 		case '0':
 			return l.lexZero()
 		case '\n':
@@ -216,9 +218,6 @@ func (l *Lexer) lexIdentifier() Token {
 		l.pos.Col++
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
 			raw = raw + string(r)
-		} else if r == ':' {
-			// Keywords can also be labels. May change later.
-			return Token{Pos: pos, Id: Label, Raw: raw}
 		} else {
 			l.unread()
 			return Token{Pos: pos, Id: identTokenId(raw), Raw: raw}
