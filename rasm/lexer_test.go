@@ -194,10 +194,13 @@ func TestLabelLexing(t *testing.T) {
 
 func TestLexPositioning(t *testing.T) {
 	str := "\nname mov,\n0xAAFF0 0o1234 0 0 000\n12418\n\n\nsection\n    label: random_name\n19370 0"
+	//                             0123456789012            01234567 01234567890123456789012
 	expected := []rasm.Position{
-		{Line: 2, Col: 0}, {Line: 2, Col: 5}, {Line: 2, Col: 8}, {Line: 3, Col: 0},
-		{Line: 3, Col: 8}, {Line: 3, Col: 15}, {Line: 3, Col: 17}, {Line: 3, Col: 19},
-		{Line: 4, Col: 0}, {Line: 7, Col: 0}, {Line: 8, Col: 4}, {Line: 8, Col: 11},
+		{Line: 1, Col: 0}, {Line: 2, Col: 0}, {Line: 2, Col: 5}, {Line: 2, Col: 8},
+		{Line: 2, Col: 9}, {Line: 3, Col: 0}, {Line: 3, Col: 8}, {Line: 3, Col: 15},
+		{Line: 3, Col: 17}, {Line: 3, Col: 19}, {Line: 3, Col: 22}, {Line: 4, Col: 0},
+		{Line: 4, Col: 5}, {Line: 5, Col: 0}, {Line: 6, Col: 0}, {Line: 7, Col: 0},
+		{Line: 7, Col: 7}, {Line: 8, Col: 4}, {Line: 8, Col: 11}, {Line: 8, Col: 22},
 		{Line: 9, Col: 0}, {Line: 9, Col: 6},
 	}
 	lxr := rasm.NewLexer(strings.NewReader(str))

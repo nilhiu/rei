@@ -22,6 +22,7 @@ const (
 	Section
 	Label
 	Comma
+	Newline
 
 	Identifier
 	Hex
@@ -70,7 +71,7 @@ func (l *Lexer) Next() Token {
 		case '\n':
 			l.pos.Line++
 			l.pos.Col = 0
-			continue
+			return Token{Pos: pos, Id: Newline, Raw: "\\n"}
 		default:
 			if unicode.IsSpace(r) {
 				continue
