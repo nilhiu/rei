@@ -8,7 +8,7 @@ import (
 )
 
 func TestNameLexing(t *testing.T) {
-	expected := []string{"mov", "raw", "r1", "r31", "lo_bit", "open.win", "slo_._mo"}
+	expected := []string{"mov", "raw", "r1", "r31", "lo_bit", "open.win", "slo_._mo", ".text", "_.o"}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)

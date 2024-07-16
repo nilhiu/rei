@@ -77,7 +77,7 @@ func (l *Lexer) Next() Token {
 			} else if unicode.IsDigit(r) {
 				l.unread()
 				return l.lexDecimal()
-			} else if unicode.IsLetter(r) {
+			} else if unicode.IsLetter(r) || r == '_' || r == '.' {
 				l.unread()
 				return l.lexName()
 			}
