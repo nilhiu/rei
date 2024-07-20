@@ -233,7 +233,7 @@ func identTokenId(id string) TokenId {
 	case "section":
 		return Section
 	default:
-		if instr := x86.InstrSearchMap[ident]; instr != 0 {
+		if instr := x86.MnemonicSearchMap[ident]; instr != 0 {
 			return TokenId(Instruction | instr)
 		} else if reg := x86.RegisterSearchMap[ident]; reg != 0 {
 			return TokenId(Register | reg)

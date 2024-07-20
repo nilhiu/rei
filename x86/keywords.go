@@ -1,14 +1,14 @@
 package x86
 
-type Instruction uint
+type Mnemonic uint
 
-// Instruction constants (Very WIP)
+// Mnemonic constants (Very WIP)
 const (
 	_   = iota
 	Mov = iota << 5
 )
 
-var InstrSearchMap = map[string]Instruction{
+var MnemonicSearchMap = map[string]Mnemonic{
 	"mov": Mov,
 }
 
@@ -87,7 +87,7 @@ const (
 	Bh
 )
 
-var RegisterSearchMap = map[string]Instruction{
+var RegisterSearchMap = map[string]Mnemonic{
 	"rax": Rax,
 	"rcx": Rcx,
 	"rdx": Rdx,
