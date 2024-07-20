@@ -25,6 +25,7 @@ const (
 	Rdi
 	Rsp
 	Rbp
+	R8
 	R9
 	R10
 	R11
@@ -41,6 +42,7 @@ const (
 	Edi
 	Esp
 	Ebp
+	R8d
 	R9d
 	R10d
 	R11d
@@ -57,6 +59,7 @@ const (
 	Di
 	Sp
 	Bp
+	R8w
 	R9w
 	R10w
 	R11w
@@ -73,6 +76,7 @@ const (
 	Dil
 	Spl
 	Bpl
+	R8b
 	R9b
 	R10b
 	R11b
@@ -96,6 +100,7 @@ var RegisterSearchMap = map[string]Mnemonic{
 	"rdi": Rdi,
 	"rsp": Rsp,
 	"rbp": Rbp,
+	"r8":  R8,
 	"r9":  R9,
 	"r10": R10,
 	"r11": R11,
@@ -112,6 +117,7 @@ var RegisterSearchMap = map[string]Mnemonic{
 	"edi":  Edi,
 	"esp":  Esp,
 	"ebp":  Ebp,
+	"r8d":  R8d,
 	"r9d":  R9d,
 	"r10d": R10d,
 	"r11d": R11d,
@@ -128,6 +134,7 @@ var RegisterSearchMap = map[string]Mnemonic{
 	"di":   Di,
 	"sp":   Sp,
 	"bp":   Bp,
+	"r8w":  R8w,
 	"r9w":  R9w,
 	"r10w": R10w,
 	"r11w": R11w,
@@ -144,6 +151,7 @@ var RegisterSearchMap = map[string]Mnemonic{
 	"dil":  Dil,
 	"spl":  Spl,
 	"bpl":  Bpl,
+	"r8b":  R8b,
 	"r9b":  R9b,
 	"r10b": R10b,
 	"r11b": R11b,
