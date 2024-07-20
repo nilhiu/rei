@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 	"unicode"
+
+	"github.com/nilhiu/rei/x86"
 )
 
 type Position struct {
@@ -231,9 +233,9 @@ func identTokenId(id string) TokenId {
 	case "section":
 		return Section
 	default:
-		if instr := x86InstrSearchMap[ident]; instr != 0 {
+		if instr := x86.InstrSearchMap[ident]; instr != 0 {
 			return TokenId(Instruction | instr)
-		} else if reg := x86RegisterSearchMap[ident]; reg != 0 {
+		} else if reg := x86.RegisterSearchMap[ident]; reg != 0 {
 			return TokenId(Register | reg)
 		} else {
 			return Identifier
