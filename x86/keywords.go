@@ -91,7 +91,7 @@ const (
 	Bh
 )
 
-var RegisterSearchMap = map[string]Mnemonic{
+var RegisterSearchMap = map[string]Register{
 	"rax": Rax,
 	"rcx": Rcx,
 	"rdx": Rdx,
