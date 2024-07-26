@@ -14,6 +14,44 @@ var MnemonicSearchMap = map[string]Mnemonic{
 
 type Register uint
 
+func (reg Register) EncodeByte() byte {
+	switch reg {
+	case Al, Ax, Eax, Rax, R8b, R8w, R8d, R8:
+		return 0
+	case Cl, Cx, Ecx, Rcx, R9b, R9w, R9d, R9:
+		return 1
+	case Dl, Dx, Edx, Rdx, R10b, R10w, R10d, R10:
+		return 2
+	case Bl, Bx, Ebx, Rbx, R11b, R11w, R11d, R11:
+		return 3
+	case Ah, Sp, Esp, Spl, Rsp, R12b, R12w, R12d, R12:
+		return 4
+	case Ch, Bp, Ebp, Bpl, Rbp, R13b, R13w, R13d, R13:
+		return 5
+	case Dh, Si, Esi, Sil, Rsi, R14b, R14w, R14d, R14:
+		return 6
+	case Bh, Di, Edi, Dil, Rdi, R15b, R15w, R15d, R15:
+		return 7
+	default:
+		panic("given register is unsupported ")
+	}
+}
+
+func (reg Register) Size() uint {
+	switch reg {
+	case Al, Cl, Dl, Bl, Sil, Dil, Spl, Bpl, R8b, R9b, R10b, R11b, R12b, R13b, R14b, R15b, Ah, Ch, Dh, Bh:
+		return 8
+	case Ax, Cx, Dx, Bx, Si, Di, Sp, Bp, R8w, R9w, R10w, R11w, R12w, R13w, R14w, R15w:
+		return 16
+	case Eax, Ecx, Edx, Ebx, Esi, Edi, Esp, Ebp, R8d, R9d, R10d, R11d, R12d, R13d, R14d, R15d:
+		return 32
+	case Rax, Rcx, Rdx, Rbx, Rsi, Rdi, Rsp, Rbp, R8, R9, R10, R11, R12, R13, R14, R15:
+		return 64
+	}
+
+	panic("unreachable")
+}
+
 // Register constants (WIP)
 const (
 	_            = iota
