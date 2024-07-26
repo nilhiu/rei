@@ -12,9 +12,27 @@ const (
 	OpRegister
 )
 
-type Operand struct {
-	Type OpType
-	Data uint
+type Operand interface {
+	Type() OpType
+	Value() uint
+}
+
+func (r Register) Type() OpType {
+	return OpRegister
+}
+
+func (r Register) Value() uint {
+	return uint(encodeRegister(r))
+}
+
+type Immediate uint
+
+func (imm Immediate) Type() OpType {
+	return OpImmediate
+}
+
+func (imm Immediate) Value() uint {
+	return uint(imm)
 }
 
 func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
@@ -32,10 +50,10 @@ func translateMov(ops []Operand) ([]byte, error) {
 		return []byte{}, errors.New("the 'mov' mnemonic must only have 2 operands")
 	}
 
-	if ops[0].Type == OpRegister && ops[1].Type == OpImmediate {
-		return translateMovRegImm(Register(ops[0].Data), ops[1].Data)
-	} else if ops[0].Type == OpRegister && ops[1].Type == OpRegister {
-		return translateMovRegReg(Register(ops[0].Data), Register(ops[1].Data))
+	if ops[0].Type() == OpRegister && ops[1].Type() == OpImmediate {
+		return translateMovRegImm(ops[0].(Register), ops[1].Value())
+	} else if ops[0].Type() == OpRegister && ops[1].Type() == OpRegister {
+		return translateMovRegReg(ops[0].(Register), ops[1].(Register))
 	}
 
 	return []byte{}, errors.New("given operands are unsupported by the 'mov' mnemonic")
@@ -46,10 +64,10 @@ func translateMovRegImm(reg Register, imm uint) ([]byte, error) {
 	case Al, Cl, Dl, Bl, Ah, Ch, Dh, Bh:
 		return []byte{}, errors.New("8-bit registers not yet supported")
 	case Ax, Cx, Dx, Bx:
-		code := []byte{0x66, 0xB8 + encodeRegister(reg)}
+		code := []byte{0x66, 0xB8 + byte(reg.Value())}
 		return binary.LittleEndian.AppendUint16(code, uint16(imm)), nil
 	case Eax, Ecx, Edx, Ebx:
-		code := []byte{0xB8 + encodeRegister(reg)}
+		code := []byte{0xB8 + byte(reg.Value())}
 		return binary.LittleEndian.AppendUint32(code, uint32(imm)), nil
 	}
 	return []byte{}, errors.New("unsupported register")
@@ -97,7 +115,7 @@ func encodeRegister(reg Register) byte {
 func encodeModRM(mod byte, dst Register, src Register) byte {
 	switch mod {
 	case 0b11:
-		return (mod << 6) | (encodeRegister(src) << 3) | encodeRegister(dst)
+		return (mod << 6) | (byte(src.Value()) << 3) | byte(dst.Value())
 	default:
 		panic("any 'mod' value other than 0b11 is unsupported for now")
 	}
