@@ -4,8 +4,8 @@ type Mnemonic uint
 
 // Mnemonic constants (Very WIP)
 const (
-	_   = iota
-	Mov = iota << 5
+	_            = iota
+	Mov Mnemonic = iota << 5
 )
 
 var MnemonicSearchMap = map[string]Mnemonic{
@@ -16,8 +16,8 @@ type Register uint
 
 // Register constants (WIP)
 const (
-	_   = iota
-	Rax = iota << 5
+	_            = iota
+	Rax Register = iota << 5
 	Rcx
 	Rdx
 	Rbx

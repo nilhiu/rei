@@ -8,7 +8,7 @@ import (
 type OpType uint
 
 const (
-	OpImmediate = iota
+	OpImmediate OpType = iota
 	OpRegister
 )
 

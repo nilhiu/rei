@@ -17,7 +17,7 @@ type Position struct {
 type TokenId uint
 
 const (
-	Eof = iota
+	Eof TokenId = iota
 	Illegal
 	Instruction
 	Register
@@ -234,9 +234,9 @@ func identTokenId(id string) TokenId {
 		return Section
 	default:
 		if instr := x86.MnemonicSearchMap[ident]; instr != 0 {
-			return TokenId(Instruction | instr)
+			return TokenId(uint(Instruction) | uint(instr))
 		} else if reg := x86.RegisterSearchMap[ident]; reg != 0 {
-			return TokenId(Register | reg)
+			return TokenId(uint(Register) | uint(reg))
 		} else {
 			return Identifier
 		}

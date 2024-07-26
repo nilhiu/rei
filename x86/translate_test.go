@@ -11,7 +11,7 @@ import (
 func TestMovRegImm(t *testing.T) {
 	bytes, err := x86.Translate(
 		x86.Mov,
-		x86.Operand{x86.OpRegister, x86.Ecx},
+		x86.Operand{x86.OpRegister, uint(x86.Ecx)},
 		x86.Operand{x86.OpImmediate, 591},
 	)
 	expectedBytes := []byte{0xB9, 0x4F, 0x02, 0x00, 0x00}
@@ -35,8 +35,8 @@ func TestMovRegImm(t *testing.T) {
 func TestMovRegReg(t *testing.T) {
 	bytes, err := x86.Translate(
 		x86.Mov,
-		x86.Operand{x86.OpRegister, x86.Cx},
-		x86.Operand{x86.OpRegister, x86.Dx},
+		x86.Operand{x86.OpRegister, uint(x86.Cx)},
+		x86.Operand{x86.OpRegister, uint(x86.Dx)},
 	)
 	expectedBytes := []byte{0x66, 0x89, 0xD1}
 	if err != nil {

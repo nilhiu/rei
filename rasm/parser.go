@@ -5,7 +5,7 @@ import "io"
 type ExprId uint
 
 const (
-	EofExpr = iota
+	EofExpr ExprId = iota
 	InstrExpr
 	SectionExpr
 	LabelExpr
