@@ -33,12 +33,12 @@ func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 		return translateMov(ops)
 	}
 
-	return []byte{}, errors.New("unknown mnemonic encountered")
+	return nil, errors.New("unknown mnemonic encountered")
 }
 
 func translateMov(ops []Operand) ([]byte, error) {
 	if len(ops) != 2 {
-		return []byte{}, errors.New("the 'mov' mnemonic must only have 2 operands")
+		return nil, errors.New("the 'mov' mnemonic must only have 2 operands")
 	}
 
 	if ops[0].Type() == OpRegister && ops[1].Type() == OpImmediate {
@@ -47,7 +47,7 @@ func translateMov(ops []Operand) ([]byte, error) {
 		return translateMovRegReg(ops[0].(Register), ops[1].(Register))
 	}
 
-	return []byte{}, errors.New("given operands are unsupported by the 'mov' mnemonic")
+	return nil, errors.New("given operands are unsupported by the 'mov' mnemonic")
 }
 
 func translateMovRegImm(reg Register, imm uint) ([]byte, error) {
@@ -69,7 +69,7 @@ func translateGenericRegImm(opEnc OpcodeEncoding, reg Register, imm uint, isModR
 
 func translateGenericRegReg(opEnc OpcodeEncoding, dst Register, src Register) ([]byte, error) {
 	if dst.Size() != src.Size() {
-		return []byte{}, errors.New("different sized registers in a register-register instruction")
+		return nil, errors.New("different sized registers in a register-register instruction")
 	}
 	opcode := opEnc.getForReg(dst)
 	return encodeOpcodeRegReg(opcode, dst, src), nil
