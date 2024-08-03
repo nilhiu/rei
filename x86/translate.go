@@ -36,7 +36,6 @@ func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 	return []byte{}, errors.New("unknown mnemonic encountered")
 }
 
-// TODO: Add translation for 64-bit registers.
 func translateMov(ops []Operand) ([]byte, error) {
 	if len(ops) != 2 {
 		return []byte{}, errors.New("the 'mov' mnemonic must only have 2 operands")
@@ -81,6 +80,9 @@ func encodeOpcodeRegImm(opcode byte, reg Register, isModRM bool, regDigit byte) 
 	if reg.Size() == 16 {
 		opBytes = []byte{0x66}
 	}
+	if reg.IsRex() {
+		opBytes = append(opBytes, encodeRegRex(reg))
+	}
 	if isModRM {
 		return append(opBytes, opcode, encodeModRM(0b11, Register(regDigit), reg))
 	} else {
@@ -92,6 +94,9 @@ func encodeOpcodeRegReg(opcode byte, reg Register, regOpt Register) []byte {
 	opBytes := []byte{}
 	if reg.Size() == 16 {
 		opBytes = []byte{0x66}
+	}
+	if reg.IsRex() {
+		opBytes = append(opBytes, encodeRegRegRex(reg, regOpt))
 	}
 	return append(opBytes, opcode, encodeModRM(0b11, reg, regOpt))
 }
@@ -115,7 +120,6 @@ func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
 	return nil, errors.New("unreachable")
 }
 
-// TODO: Add REX byte extension to ModR/M.
 func encodeModRM(mod byte, dst Register, src Register) byte {
 	switch mod {
 	case 0b11:
@@ -123,4 +127,22 @@ func encodeModRM(mod byte, dst Register, src Register) byte {
 	default:
 		panic("any 'mod' value other than 0b11 is unsupported for now")
 	}
+}
+
+func encodeRegRex(reg Register) byte {
+	return encodeRegRegRex(reg, Register(0))
+}
+
+func encodeRegRegRex(reg1 Register, reg2 Register) byte {
+	var rex byte = 0b0100_0000
+	if reg1.IsRexB() {
+		rex |= 0b0000_0001
+	}
+	if reg2.IsRexB() {
+		rex |= 0b0000_0100
+	}
+	if reg1.Size() == 64 {
+		rex |= 0b0000_1000
+	}
+	return rex
 }

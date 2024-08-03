@@ -29,8 +29,8 @@ func TestMovRegImm(t *testing.T) {
 }
 
 func TestMovRegReg(t *testing.T) {
-	bytes, err := x86.Translate(x86.Mov, x86.Cx, x86.Dx)
-	expectedBytes := []byte{0x66, 0x89, 0xD1}
+	bytes, err := x86.Translate(x86.Mov, x86.R15w, x86.R15w)
+	expectedBytes := []byte{0x66, 0x45, 0x89, 0xFF}
 	if err != nil {
 		t.Fatal(err)
 	}
