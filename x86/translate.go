@@ -42,20 +42,22 @@ func translateMov(ops []Operand) ([]byte, error) {
 	}
 
 	if ops[0].Type() == OpRegister && ops[1].Type() == OpImmediate {
-		return translateMovRegImm(ops[0].(Register), ops[1].Value())
+		return translateGenericRegImm(
+			OpcodeEncoding{0xB0, 0xB8, 0xB8, 0xB8},
+			ops[0].(Register),
+			ops[1].Value(),
+			false,
+			0,
+		)
 	} else if ops[0].Type() == OpRegister && ops[1].Type() == OpRegister {
-		return translateMovRegReg(ops[0].(Register), ops[1].(Register))
+		return translateGenericRegReg(
+			OpcodeEncoding{0x88, 0x89, 0x89, 0x89},
+			ops[0].(Register),
+			ops[1].(Register),
+		)
 	}
 
 	return nil, errors.New("given operands are unsupported by the 'mov' mnemonic")
-}
-
-func translateMovRegImm(reg Register, imm uint) ([]byte, error) {
-	return translateGenericRegImm(OpcodeEncoding{0xB0, 0xB8, 0xB8, 0xB8}, reg, imm, false, 0)
-}
-
-func translateMovRegReg(dst Register, src Register) ([]byte, error) {
-	return translateGenericRegReg(OpcodeEncoding{0x88, 0x89, 0x89, 0x89}, dst, src)
 }
 
 func translateGenericRegImm(opEnc OpcodeEncoding, reg Register, imm uint, isModRM bool, regDigit byte) ([]byte, error) {
