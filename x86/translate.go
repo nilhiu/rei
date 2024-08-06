@@ -30,34 +30,46 @@ func (o OpcodeEncoding) getForReg(reg Register) byte {
 func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 	switch mnem {
 	case Mov:
-		return translateMov(ops)
+		return translateGenericMnemonicOp2(
+			OpcodeEncoding{0xB0, 0xB8, 0xB8, 0xB8},
+			OpcodeEncoding{0x88, 0x89, 0x89, 0x89},
+			ops,
+			false,
+			0,
+		)
 	}
 
 	return nil, errors.New("unknown mnemonic encountered")
 }
 
-func translateMov(ops []Operand) ([]byte, error) {
+func translateGenericMnemonicOp2(
+	encRegImm OpcodeEncoding,
+	encRegReg OpcodeEncoding,
+	ops []Operand,
+	isModRM bool,
+	regDigit byte,
+) ([]byte, error) {
 	if len(ops) != 2 {
-		return nil, errors.New("the 'mov' mnemonic must only have 2 operands")
+		return nil, errors.New("mnemonic must only have 2 operands")
 	}
 
 	if ops[0].Type() == OpRegister && ops[1].Type() == OpImmediate {
 		return translateGenericRegImm(
-			OpcodeEncoding{0xB0, 0xB8, 0xB8, 0xB8},
+			encRegImm,
 			ops[0].(Register),
 			ops[1].Value(),
-			false,
-			0,
+			isModRM,
+			regDigit,
 		)
 	} else if ops[0].Type() == OpRegister && ops[1].Type() == OpRegister {
 		return translateGenericRegReg(
-			OpcodeEncoding{0x88, 0x89, 0x89, 0x89},
+			encRegReg,
 			ops[0].(Register),
 			ops[1].(Register),
 		)
 	}
 
-	return nil, errors.New("given operands are unsupported by the 'mov' mnemonic")
+	return nil, errors.New("given operands are unsupported by the mnemonic")
 }
 
 func translateGenericRegImm(opEnc OpcodeEncoding, reg Register, imm uint, isModRM bool, regDigit byte) ([]byte, error) {
