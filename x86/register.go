@@ -63,6 +63,16 @@ func (reg Register) IsRexB() bool {
 	}
 }
 
+// Reports if the register can not be encoded if a REX byte is present.
+func (reg Register) IsRexExcluded() bool {
+	switch reg {
+	case Ah, Ch, Dh, Bh:
+		return true
+	default:
+		return false
+	}
+}
+
 // Register constants (WIP)
 const (
 	_            = iota

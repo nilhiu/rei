@@ -72,7 +72,7 @@ func translateGenericRegReg(opEnc OpcodeEncoding, dst Register, src Register) ([
 		return nil, errors.New("different sized registers in a register-register instruction")
 	}
 	opcode := opEnc.getForReg(dst)
-	return encodeOpcodeRegReg(opcode, dst, src), nil
+	return encodeOpcodeRegReg(opcode, dst, src)
 }
 
 func encodeOpcodeRegImm(opcode byte, reg Register, isModRM bool, regDigit byte) []byte {
@@ -90,15 +90,18 @@ func encodeOpcodeRegImm(opcode byte, reg Register, isModRM bool, regDigit byte) 
 	}
 }
 
-func encodeOpcodeRegReg(opcode byte, reg Register, regOpt Register) []byte {
+func encodeOpcodeRegReg(opcode byte, reg Register, regOpt Register) ([]byte, error) {
 	opBytes := []byte{}
 	if reg.Size() == 16 {
 		opBytes = []byte{0x66}
 	}
-	if reg.IsRex() {
+	if reg.IsRex() || regOpt.IsRex() {
+		if reg.IsRexExcluded() || regOpt.IsRexExcluded() {
+			return nil, errors.New("given register cannot be encoded with REX byte present")
+		}
 		opBytes = append(opBytes, encodeRegRegRex(reg, regOpt))
 	}
-	return append(opBytes, opcode, encodeModRM(0b11, reg, regOpt))
+	return append(opBytes, opcode, encodeModRM(0b11, reg, regOpt)), nil
 }
 
 func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
