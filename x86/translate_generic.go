@@ -6,101 +6,121 @@ import (
 )
 
 // This might not be the best decision, but for now it's okay.
-type OpcodeEncoding struct {
-	For8Bit  byte
-	For16Bit byte
-	For32Bit byte
-	For64Bit byte
+type opcodeBase struct {
+	for8Bit []byte
+	forRest []byte
 }
 
-func (o OpcodeEncoding) getForReg(reg Register) byte {
-	switch reg.Size() {
+func (o opcodeBase) getBySize(sz uint) []byte {
+	switch sz {
 	case 8:
-		return o.For8Bit
-	case 16:
-		return o.For16Bit
-	case 32:
-		return o.For32Bit
-	case 64:
-		return o.For64Bit
+		return o.for8Bit
+	default:
+		return o.forRest
 	}
-	panic("unreachable")
 }
 
-func translateGenericMnemonicOp2(
-	encRegImm OpcodeEncoding,
-	encRegReg OpcodeEncoding,
-	ops []Operand,
-	isModRM bool,
-	regDigit byte,
+type translateFunc func([]Operand) ([]byte, error)
+
+type opcodeFormat struct {
+	operands   [][]OpType
+	translates []translateFunc
+}
+
+var instrToFormat = map[Mnemonic]opcodeFormat{
+	Mov: {
+		[][]OpType{
+			{OpRegister, OpRegister},
+			{OpRegister, OpImmediate},
+		},
+		[]translateFunc{
+			gRR(opcodeBase{[]byte{0x88}, []byte{0x89}}, true),
+			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^uint(0)),
+		},
+	},
+}
+
+func gRR(base opcodeBase, mustSameSize bool) func([]Operand) ([]byte, error) {
+	return func(ops []Operand) ([]byte, error) {
+		return genericRegReg(base, mustSameSize, ops[0].(Register), ops[1].(Register))
+	}
+}
+
+// if doesn't have class give value of `^byte(0)`
+func gRI(base opcodeBase, class uint) func([]Operand) ([]byte, error) {
+	return func(ops []Operand) ([]byte, error) {
+		return genericRegImm(base, class, ops[0].(Register), ops[1].(Immediate))
+	}
+}
+
+func genericRegImm(
+	base opcodeBase,
+	class uint,
+	reg Register,
+	imm Immediate,
 ) ([]byte, error) {
-	if len(ops) != 2 {
-		return nil, errors.New("mnemonic must only have 2 operands")
-	}
-
-	if ops[0].Type() == OpRegister && ops[1].Type() == OpImmediate {
-		return translateGenericRegImm(
-			encRegImm,
-			ops[0].(Register),
-			ops[1].Value(),
-			isModRM,
-			regDigit,
-		)
-	} else if ops[0].Type() == OpRegister && ops[1].Type() == OpRegister {
-		return translateGenericRegReg(
-			encRegReg,
-			ops[0].(Register),
-			ops[1].(Register),
-		)
-	}
-
-	return nil, errors.New("given operands are unsupported by the mnemonic")
-}
-
-func translateGenericRegImm(opEnc OpcodeEncoding, reg Register, imm uint, isModRM bool, regDigit byte) ([]byte, error) {
-	immBytes, err := translateImmToRegNative(imm, reg)
+	immBytes, err := translateImmToRegNative(imm.Value(), reg)
 	if err != nil {
 		return nil, err
 	}
-	opcode := opEnc.getForReg(reg)
-	return append(encodeOpcodeRegImm(opcode, reg, isModRM, regDigit), immBytes...), nil
+
+	return append(genericReg(base, reg, class), immBytes...), nil
 }
 
-func translateGenericRegReg(opEnc OpcodeEncoding, dst Register, src Register) ([]byte, error) {
-	if dst.Size() != src.Size() {
-		return nil, errors.New("different sized registers in a register-register instruction")
+func genericRegReg(
+	base opcodeBase,
+	mustSameSize bool,
+	reg1 Register,
+	reg2 Register,
+) ([]byte, error) {
+	if mustSameSize && reg1.Size() != reg2.Size() {
+		return nil, errors.New("given registers must be the same size")
 	}
-	opcode := opEnc.getForReg(dst)
-	return encodeOpcodeRegReg(opcode, dst, src)
+
+	opcode := genericRegNoPrefix(base, reg1, uint(reg2))
+	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
+		return nil, errors.New("given register cannot be encoded with a REX prefix")
+	}
+
+	return append(prefixRR(reg1, reg2), opcode...), nil
 }
 
-func encodeOpcodeRegImm(opcode byte, reg Register, isModRM bool, regDigit byte) []byte {
-	opBytes := []byte{}
+func genericReg(base opcodeBase, reg Register, class uint) []byte {
+	prefix := prefixR(reg)
+	return append(prefix, genericRegNoPrefix(base, reg, class)...)
+}
+
+func genericRegNoPrefix(base opcodeBase, reg Register, class uint) []byte {
+	opcode := base.getBySize(reg.Size())
+
+	if class != ^uint(0) {
+		return append(opcode, encodeModRM(0b11, Register(class), reg))
+	} else {
+		opcode[len(opcode)-1] += reg.EncodeByte()
+		return opcode
+	}
+}
+
+func prefixRR(reg1 Register, reg2 Register) []byte {
+	prefix := []byte{}
+	if reg1.Size() == 16 || reg2.Size() == 16 {
+		prefix = []byte{0x66}
+	}
+	if reg1.IsRex() || reg2.IsRex() {
+		prefix = append(prefix, encodeRexRR(reg1, reg2))
+	}
+	return prefix
+}
+
+func prefixR(reg Register) []byte {
+	prefix := []byte{}
 	if reg.Size() == 16 {
-		opBytes = []byte{0x66}
+		prefix = []byte{0x66}
 	}
 	if reg.IsRex() {
-		opBytes = append(opBytes, encodeRegRex(reg))
+		prefix = append(prefix, encodeRexR(reg))
 	}
-	if isModRM {
-		return append(opBytes, opcode, encodeModRM(0b11, Register(regDigit), reg))
-	} else {
-		return append(opBytes, opcode+reg.EncodeByte())
-	}
-}
-
-func encodeOpcodeRegReg(opcode byte, reg Register, regOpt Register) ([]byte, error) {
-	opBytes := []byte{}
-	if reg.Size() == 16 {
-		opBytes = []byte{0x66}
-	}
-	if reg.IsRex() || regOpt.IsRex() {
-		if reg.IsRexExcluded() || regOpt.IsRexExcluded() {
-			return nil, errors.New("given register cannot be encoded with REX byte present")
-		}
-		opBytes = append(opBytes, encodeRegRegRex(reg, regOpt))
-	}
-	return append(opBytes, opcode, encodeModRM(0b11, reg, regOpt)), nil
+	return prefix
 }
 
 func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
@@ -122,29 +142,29 @@ func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
 	return nil, errors.New("unreachable")
 }
 
-func encodeModRM(mod byte, dst Register, src Register) byte {
+func encodeModRM(mod byte, reg Register, mem Register) byte {
 	switch mod {
 	case 0b11:
-		return (mod << 6) | (src.EncodeByte() << 3) | dst.EncodeByte()
+		return (mod << 6) | (reg.EncodeByte() << 3) | mem.EncodeByte()
 	default:
 		panic("any 'mod' value other than 0b11 is unsupported for now")
 	}
 }
 
-func encodeRegRex(reg Register) byte {
-	return encodeRegRegRex(reg, Register(0))
+func encodeRexR(reg Register) byte {
+	return encodeRexRR(reg, Register(0))
 }
 
-func encodeRegRegRex(reg1 Register, reg2 Register) byte {
-	var rex byte = 0b0100_0000
+func encodeRexRR(reg1 Register, reg2 Register) byte {
+	var rex byte = 0x40
 	if reg1.IsRexB() {
-		rex |= 0b0000_0001
+		rex |= 0x01
 	}
 	if reg2.IsRexB() {
-		rex |= 0b0000_0100
+		rex |= 0x04
 	}
 	if reg1.Size() == 64 {
-		rex |= 0b0000_1000
+		rex |= 0x08
 	}
 	return rex
 }
