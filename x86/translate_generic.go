@@ -77,7 +77,7 @@ func genericRegReg(
 		return nil, errors.New("given registers must be the same size")
 	}
 
-	opcode := genericRegNoPrefix(base, reg1, uint(reg2))
+	opcode := genericRegNoPrefix(base, reg1, uint(reg2.EncodeByte()))
 	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
@@ -94,7 +94,7 @@ func genericRegNoPrefix(base opcodeBase, reg Register, class uint) []byte {
 	opcode := base.getBySize(reg.Size())
 
 	if class != ^uint(0) {
-		return append(opcode, encodeModRM(0b11, Register(class), reg))
+		return append(opcode, encodeModRM(0b11, byte(class), reg.EncodeByte()))
 	} else {
 		opcode[len(opcode)-1] += reg.EncodeByte()
 		return opcode
@@ -142,10 +142,10 @@ func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
 	return nil, errors.New("unreachable")
 }
 
-func encodeModRM(mod byte, reg Register, mem Register) byte {
+func encodeModRM(mod byte, reg byte, mem byte) byte {
 	switch mod {
 	case 0b11:
-		return (mod << 6) | (reg.EncodeByte() << 3) | mem.EncodeByte()
+		return (mod << 6) | (reg << 3) | mem
 	default:
 		panic("any 'mod' value other than 0b11 is unsupported for now")
 	}
