@@ -27,6 +27,28 @@ type opcodeFormat struct {
 	translates []translateFunc
 }
 
+type immediateFormat struct {
+	for8Bit  byte
+	for16Bit byte
+	for32Bit byte
+	for64Bit byte
+}
+
+func (i immediateFormat) getBySize(sz uint) byte {
+	switch sz {
+	case 8:
+		return i.for8Bit
+	case 16:
+		return i.for16Bit
+	case 32:
+		return i.for32Bit
+	case 64:
+		return i.for64Bit
+	}
+
+	panic("shouldn't be here")
+}
+
 var instrToFormat = map[Mnemonic]opcodeFormat{
 	Mov: {
 		[][]OpType{
@@ -35,7 +57,7 @@ var instrToFormat = map[Mnemonic]opcodeFormat{
 		},
 		[]translateFunc{
 			gRR(opcodeBase{[]byte{0x88}, []byte{0x89}}, true),
-			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^byte(0)),
+			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^byte(0), immediateFormat{8, 16, 32, 64}),
 		},
 	},
 }
@@ -47,19 +69,20 @@ func gRR(base opcodeBase, mustSameSize bool) func([]Operand) ([]byte, error) {
 }
 
 // if doesn't have class give value of `^byte(0)`
-func gRI(base opcodeBase, class byte) func([]Operand) ([]byte, error) {
+func gRI(base opcodeBase, class byte, immFmt immediateFormat) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
-		return genericRegImm(base, class, ops[0].(Register), ops[1].(Immediate))
+		return genericRegImm(base, class, immFmt, ops[0].(Register), ops[1].(Immediate))
 	}
 }
 
 func genericRegImm(
 	base opcodeBase,
 	class byte,
+	immFmt immediateFormat,
 	reg Register,
 	imm Immediate,
 ) ([]byte, error) {
-	immBytes, err := translateImmToRegNative(imm.Value(), reg)
+	immBytes, err := translateImmByFormat(imm.Value(), reg, immFmt)
 	if err != nil {
 		return nil, err
 	}
@@ -123,12 +146,14 @@ func prefixR(reg Register) []byte {
 	return prefix
 }
 
-func translateImmToRegNative(imm uint, reg Register) ([]byte, error) {
-	if imm > uint(1)<<reg.Size() {
+func translateImmByFormat(imm uint, reg Register, immFmt immediateFormat) ([]byte, error) {
+	sz := immFmt.getBySize(reg.Size())
+
+	if imm > uint(1)<<sz {
 		return nil, errors.New("immediate too big")
 	}
 
-	switch reg.Size() {
+	switch sz {
 	case 8:
 		return []byte{byte(imm)}, nil
 	case 16:
