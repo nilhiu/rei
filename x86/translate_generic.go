@@ -35,7 +35,7 @@ var instrToFormat = map[Mnemonic]opcodeFormat{
 		},
 		[]translateFunc{
 			gRR(opcodeBase{[]byte{0x88}, []byte{0x89}}, true),
-			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^uint(0)),
+			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^byte(0)),
 		},
 	},
 }
@@ -47,7 +47,7 @@ func gRR(base opcodeBase, mustSameSize bool) func([]Operand) ([]byte, error) {
 }
 
 // if doesn't have class give value of `^byte(0)`
-func gRI(base opcodeBase, class uint) func([]Operand) ([]byte, error) {
+func gRI(base opcodeBase, class byte) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return genericRegImm(base, class, ops[0].(Register), ops[1].(Immediate))
 	}
@@ -55,7 +55,7 @@ func gRI(base opcodeBase, class uint) func([]Operand) ([]byte, error) {
 
 func genericRegImm(
 	base opcodeBase,
-	class uint,
+	class byte,
 	reg Register,
 	imm Immediate,
 ) ([]byte, error) {
@@ -77,7 +77,7 @@ func genericRegReg(
 		return nil, errors.New("given registers must be the same size")
 	}
 
-	opcode := genericRegNoPrefix(base, reg1, uint(reg2.EncodeByte()))
+	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte())
 	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
@@ -85,16 +85,16 @@ func genericRegReg(
 	return append(prefixRR(reg1, reg2), opcode...), nil
 }
 
-func genericReg(base opcodeBase, reg Register, class uint) []byte {
+func genericReg(base opcodeBase, reg Register, class byte) []byte {
 	prefix := prefixR(reg)
 	return append(prefix, genericRegNoPrefix(base, reg, class)...)
 }
 
-func genericRegNoPrefix(base opcodeBase, reg Register, class uint) []byte {
+func genericRegNoPrefix(base opcodeBase, reg Register, class byte) []byte {
 	opcode := base.getBySize(reg.Size())
 
-	if class != ^uint(0) {
-		return append(opcode, encodeModRM(0b11, byte(class), reg.EncodeByte()))
+	if class != ^byte(0) {
+		return append(opcode, encodeModRM(0b11, class, reg.EncodeByte()))
 	} else {
 		opcode[len(opcode)-1] += reg.EncodeByte()
 		return opcode
