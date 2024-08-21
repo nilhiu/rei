@@ -62,6 +62,15 @@ var instrToFormat = map[Mnemonic]opcodeFormat{
 	},
 }
 
+func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateFunc) translateFunc {
+	return func(ops []Operand) ([]byte, error) {
+		if pred(ops) {
+			return then(ops)
+		}
+		return otherwise(ops)
+	}
+}
+
 func gRR(base opcodeBase, mustSameSize bool) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return genericRegReg(base, mustSameSize, ops[0].(Register), ops[1].(Register))
