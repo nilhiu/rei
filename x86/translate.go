@@ -6,7 +6,7 @@ import (
 )
 
 func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
-	fmt, found := instrToFormat[mnem]
+	fmt, found := mnemonicToFormat[mnem]
 	if !found {
 		return nil, errors.New("unknown mnemonic encountered")
 	}

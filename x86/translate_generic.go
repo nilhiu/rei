@@ -49,7 +49,7 @@ func (i immediateFormat) getBySize(sz uint) byte {
 	panic("shouldn't be here")
 }
 
-var instrToFormat = map[Mnemonic]opcodeFormat{
+var mnemonicToFormat = map[Mnemonic]opcodeFormat{
 	Add: {
 		[][]OpType{
 			{OpRegister, OpImmediate},
