@@ -75,6 +75,12 @@ func gRI(base opcodeBase, class byte, immFmt immediateFormat) func([]Operand) ([
 	}
 }
 
+func cRI(base opcodeBase, immFmt immediateFormat) func([]Operand) ([]byte, error) {
+	return func(ops []Operand) ([]byte, error) {
+		return compressedRegImm(base, immFmt, ops[0].(Register), ops[1].(Immediate))
+	}
+}
+
 func genericRegImm(
 	base opcodeBase,
 	class byte,
@@ -122,6 +128,20 @@ func genericRegNoPrefix(base opcodeBase, reg Register, class byte) []byte {
 		opcode[len(opcode)-1] += reg.EncodeByte()
 		return opcode
 	}
+}
+
+func compressedRegImm(
+	base opcodeBase,
+	immFmt immediateFormat,
+	reg Register,
+	imm Immediate,
+) ([]byte, error) {
+	immBytes, err := translateImmByFormat(imm.Value(), reg, immFmt)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(append(prefixR(reg), base.getBySize(reg.Size())...), immBytes...), nil
 }
 
 func prefixRR(reg1 Register, reg2 Register) []byte {
