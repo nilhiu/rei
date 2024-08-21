@@ -50,6 +50,22 @@ func (i immediateFormat) getBySize(sz uint) byte {
 }
 
 var instrToFormat = map[Mnemonic]opcodeFormat{
+	Add: {
+		[][]OpType{
+			{OpRegister, OpImmediate},
+		},
+		[]translateFunc{
+			pIf(
+				func(ops []Operand) bool { return ops[0].(Register).Size() != 8 && ops[1].Value() <= 0x7F },
+				gRI(opcodeBase{[]byte{0x83}, []byte{0x83}}, 0, immediateFormat{8, 8, 8, 8}),
+				pIf(
+					func(ops []Operand) bool { return ops[0].(Register).isARegister() },
+					cRI(opcodeBase{[]byte{0x04}, []byte{0x05}}, immediateFormat{8, 16, 32, 32}),
+					gRI(opcodeBase{[]byte{0x80}, []byte{0x81}}, 0, immediateFormat{8, 16, 32, 32}),
+				),
+			),
+		},
+	},
 	Mov: {
 		[][]OpType{
 			{OpRegister, OpRegister},

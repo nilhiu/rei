@@ -73,6 +73,15 @@ func (reg Register) IsRexExcluded() bool {
 	}
 }
 
+func (reg Register) isARegister() bool {
+	switch reg {
+	case Al, Ax, Eax, Rax:
+		return true
+	default:
+		return false
+	}
+}
+
 // Register constants (WIP)
 const (
 	_            = iota
