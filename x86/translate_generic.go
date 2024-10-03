@@ -53,6 +53,7 @@ var mnemonicToFormat = map[Mnemonic]opcodeFormat{
 	Add: {
 		[][]OpType{
 			{OpRegister, OpImmediate},
+			{OpRegister, OpRegister},
 		},
 		[]translateFunc{
 			pIf(
@@ -64,6 +65,7 @@ var mnemonicToFormat = map[Mnemonic]opcodeFormat{
 					gRI(opcodeBase{[]byte{0x80}, []byte{0x81}}, 0, immediateFormat{8, 16, 32, 32}),
 				),
 			),
+			gRR(opcodeBase{[]byte{0x00}, []byte{0x01}}, true),
 		},
 	},
 	Mov: {

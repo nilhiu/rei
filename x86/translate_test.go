@@ -9,6 +9,17 @@ import (
 
 // TODO: Need to create much more efficient unit tests.
 
+func TestAddRegReg(t *testing.T) {
+	bytes, err := x86.Translate(x86.Add, x86.Rcx, x86.Rax)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []byte{0x48, 0x01, 0xC1}
+
+	if slices.Compare(bytes, expected) != 0 {
+		t.Fatal(bytes)
+	}
+}
 func TestAddRegImm(t *testing.T) {
 	bytes0, err := x86.Translate(x86.Add, x86.Ecx, x86.Immediate(0xA4))
 	if err != nil {
