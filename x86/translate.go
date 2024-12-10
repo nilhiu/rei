@@ -6,8 +6,8 @@ import (
 )
 
 func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
-	fmt, found := mnemonicToFormat[mnem]
-	if !found {
+	fmt := mnemToFmt(mnem)
+	if fmt == nil {
 		return nil, errors.New("unknown mnemonic encountered")
 	}
 	var opTypes []OpType

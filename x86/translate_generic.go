@@ -5,79 +5,102 @@ import (
 	"errors"
 )
 
-// This might not be the best decision, but for now it's okay.
-type opcodeBase struct {
-	for8Bit []byte
-	forRest []byte
-}
-
-func (o opcodeBase) getBySize(sz uint) []byte {
-	switch sz {
-	case 8:
-		return o.for8Bit
-	default:
-		return o.forRest
-	}
-}
-
 type translateFunc func([]Operand) ([]byte, error)
 
-type opcodeFormat struct {
+type opFmt struct {
 	operands   [][]OpType
 	translates []translateFunc
+	class      byte
 }
 
-type immediateFormat struct {
-	for8Bit  byte
-	for16Bit byte
-	for32Bit byte
-	for64Bit byte
+const (
+	opFmtClassNotChange  = byte(1 << 7)
+	opFmtClassCompactReg = byte(1 << 6)
+)
+
+func newOpFmt() *opFmt {
+	return new(opFmt)
 }
 
-func (i immediateFormat) getBySize(sz uint) byte {
+func (o *opFmt) withClass(class byte) *opFmt {
+	o.class = class
+	return o
+}
+
+func (o *opFmt) addRI(base []byte, immFmt immFmt) *opFmt {
+	o.operands = append(o.operands, []OpType{OpRegister, OpImmediate})
+	o.translates = append(o.translates, gRI(base, o.class, immFmt))
+	return o
+}
+
+func (o *opFmt) addRR(base []byte, mustSameSize bool) *opFmt {
+	o.operands = append(o.operands, []OpType{OpRegister, OpRegister})
+	o.translates = append(o.translates, gRR(base, mustSameSize))
+	return o
+}
+
+func (o *opFmt) withARegCompressed(base []byte, immFmt immFmt) *opFmt {
+	o.translates[len(o.translates)-1] =
+		pIf(
+			func(ops []Operand) bool { return ops[0].(Register).isARegister() },
+			cRI(base, immFmt),
+			o.translates[len(o.translates)-1],
+		)
+	return o
+}
+
+func (o *opFmt) withByteCompressed(base []byte) *opFmt {
+	o.translates[len(o.translates)-1] =
+		pIf(
+			func(ops []Operand) bool { return ops[0].(Register).Size() != 8 && ops[1].Value() <= 0x7F },
+			gRI(base, o.class|opFmtClassNotChange, immFmtByte),
+			o.translates[len(o.translates)-1],
+		)
+	return o
+}
+
+var immFmtNative immFmt = immFmt{8, 16, 32, 64}
+var immFmtNative32 immFmt = immFmt{8, 16, 32, 32}
+var immFmtByte immFmt = immFmt{8, 8, 8, 8}
+
+type immFmt struct {
+	forByte  byte
+	forWord  byte
+	forDWord byte
+	forQWord byte
+}
+
+func (i immFmt) getBySize(sz uint) byte {
 	switch sz {
 	case 8:
-		return i.for8Bit
+		return i.forByte
 	case 16:
-		return i.for16Bit
+		return i.forWord
 	case 32:
-		return i.for32Bit
+		return i.forDWord
 	case 64:
-		return i.for64Bit
+		return i.forQWord
 	}
 
 	panic("shouldn't be here")
 }
 
-var mnemonicToFormat = map[Mnemonic]opcodeFormat{
-	Add: {
-		[][]OpType{
-			{OpRegister, OpImmediate},
-			{OpRegister, OpRegister},
-		},
-		[]translateFunc{
-			pIf(
-				func(ops []Operand) bool { return ops[0].(Register).Size() != 8 && ops[1].Value() <= 0x7F },
-				gRI(opcodeBase{[]byte{0x83}, []byte{0x83}}, 0, immediateFormat{8, 8, 8, 8}),
-				pIf(
-					func(ops []Operand) bool { return ops[0].(Register).isARegister() },
-					cRI(opcodeBase{[]byte{0x04}, []byte{0x05}}, immediateFormat{8, 16, 32, 32}),
-					gRI(opcodeBase{[]byte{0x80}, []byte{0x81}}, 0, immediateFormat{8, 16, 32, 32}),
-				),
-			),
-			gRR(opcodeBase{[]byte{0x00}, []byte{0x01}}, true),
-		},
-	},
-	Mov: {
-		[][]OpType{
-			{OpRegister, OpRegister},
-			{OpRegister, OpImmediate},
-		},
-		[]translateFunc{
-			gRR(opcodeBase{[]byte{0x88}, []byte{0x89}}, true),
-			gRI(opcodeBase{[]byte{0xB0}, []byte{0xB8}}, ^byte(0), immediateFormat{8, 16, 32, 64}),
-		},
-	},
+func mnemToFmt(mnem Mnemonic) *opFmt {
+	switch mnem {
+	case Add:
+		return newOpFmt().
+			withClass(0).
+			addRI([]byte{0x80}, immFmtNative32).
+			withARegCompressed([]byte{0x04}, immFmtNative32).
+			withByteCompressed([]byte{0x83}).
+			addRR([]byte{0x00}, true)
+	case Mov:
+		return newOpFmt().
+			withClass(opFmtClassCompactReg).
+			addRI([]byte{0xB0}, immFmtNative).
+			addRR([]byte{0x88}, true)
+	}
+	return nil
 }
 
 func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateFunc) translateFunc {
@@ -89,33 +112,32 @@ func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateF
 	}
 }
 
-func gRR(base opcodeBase, mustSameSize bool) func([]Operand) ([]byte, error) {
+func gRR(base []byte, mustSameSize bool) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return genericRegReg(base, mustSameSize, ops[0].(Register), ops[1].(Register))
 	}
 }
 
-// if doesn't have class give value of `^byte(0)`
-func gRI(base opcodeBase, class byte, immFmt immediateFormat) func([]Operand) ([]byte, error) {
+func gRI(base []byte, class byte, immFmt immFmt) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return genericRegImm(base, class, immFmt, ops[0].(Register), ops[1].(Immediate))
 	}
 }
 
-func cRI(base opcodeBase, immFmt immediateFormat) func([]Operand) ([]byte, error) {
+func cRI(base []byte, immFmt immFmt) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return compressedRegImm(base, immFmt, ops[0].(Register), ops[1].(Immediate))
 	}
 }
 
 func genericRegImm(
-	base opcodeBase,
+	base []byte,
 	class byte,
-	immFmt immediateFormat,
+	immFmt immFmt,
 	reg Register,
 	imm Immediate,
 ) ([]byte, error) {
-	immBytes, err := translateImmByFormat(imm.Value(), reg, immFmt)
+	immBytes, err := translateImmByFmt(imm.Value(), reg, immFmt)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +146,7 @@ func genericRegImm(
 }
 
 func genericRegReg(
-	base opcodeBase,
+	base []byte,
 	mustSameSize bool,
 	reg1 Register,
 	reg2 Register,
@@ -141,34 +163,47 @@ func genericRegReg(
 	return append(prefixRR(reg1, reg2), opcode...), nil
 }
 
-func genericReg(base opcodeBase, reg Register, class byte) []byte {
+func genericReg(base []byte, reg Register, class byte) []byte {
 	prefix := prefixR(reg)
 	return append(prefix, genericRegNoPrefix(base, reg, class)...)
 }
 
-func genericRegNoPrefix(base opcodeBase, reg Register, class byte) []byte {
-	opcode := base.getBySize(reg.Size())
+func genericRegNoPrefix(base []byte, reg Register, class byte) []byte {
+	opcode := base
+	if reg.Size() != 8 && class&opFmtClassNotChange == 0 {
+		opcode = base
+		if class == opFmtClassCompactReg {
+			opcode[len(opcode)-1] += 8
+		} else {
+			opcode[len(opcode)-1]++
+		}
+	}
 
-	if class != ^byte(0) {
-		return append(opcode, encodeModRM(0b11, class, reg.EncodeByte()))
-	} else {
+	if class == opFmtClassCompactReg {
 		opcode[len(opcode)-1] += reg.EncodeByte()
 		return opcode
+	} else {
+		return append(opcode, encodeModRM(0b11, class&0b111, reg.EncodeByte()))
 	}
 }
 
 func compressedRegImm(
-	base opcodeBase,
-	immFmt immediateFormat,
+	base []byte,
+	immFmt immFmt,
 	reg Register,
 	imm Immediate,
 ) ([]byte, error) {
-	immBytes, err := translateImmByFormat(imm.Value(), reg, immFmt)
+	immBytes, err := translateImmByFmt(imm.Value(), reg, immFmt)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(append(prefixR(reg), base.getBySize(reg.Size())...), immBytes...), nil
+	opcode := base
+	if reg.Size() != 8 {
+		opcode[len(opcode)-1]++
+	}
+
+	return append(append(prefixR(reg), opcode...), immBytes...), nil
 }
 
 func prefixRR(reg1 Register, reg2 Register) []byte {
@@ -193,7 +228,7 @@ func prefixR(reg Register) []byte {
 	return prefix
 }
 
-func translateImmByFormat(imm uint, reg Register, immFmt immediateFormat) ([]byte, error) {
+func translateImmByFmt(imm uint, reg Register, immFmt immFmt) ([]byte, error) {
 	sz := immFmt.getBySize(reg.Size())
 
 	if imm > uint(1)<<sz {
