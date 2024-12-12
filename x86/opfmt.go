@@ -20,9 +20,11 @@ const (
 	opFmtClassCompactReg = byte(1 << 6)
 )
 
-var immFmtNative immFmt = immFmt{8, 16, 32, 64}
-var immFmtNative32 immFmt = immFmt{8, 16, 32, 32}
-var immFmtByte immFmt = immFmt{8, 8, 8, 8}
+var (
+	immFmtNative   immFmt = immFmt{8, 16, 32, 64}
+	immFmtNative32 immFmt = immFmt{8, 16, 32, 32}
+	immFmtByte     immFmt = immFmt{8, 8, 8, 8}
+)
 
 func newOpFmt() *opFmt {
 	return new(opFmt)
@@ -46,22 +48,20 @@ func (o *opFmt) addRR(base []byte, mustSameSize bool) *opFmt {
 }
 
 func (o *opFmt) withARegCompressed(base []byte, immFmt immFmt) *opFmt {
-	o.translates[len(o.translates)-1] =
-		pIf(
-			func(ops []Operand) bool { return ops[0].(Register).isARegister() },
-			cRI(base, immFmt),
-			o.translates[len(o.translates)-1],
-		)
+	o.translates[len(o.translates)-1] = pIf(
+		func(ops []Operand) bool { return ops[0].(Register).isARegister() },
+		cRI(base, immFmt),
+		o.translates[len(o.translates)-1],
+	)
 	return o
 }
 
 func (o *opFmt) withByteCompressed(base []byte) *opFmt {
-	o.translates[len(o.translates)-1] =
-		pIf(
-			func(ops []Operand) bool { return ops[0].(Register).Size() != 8 && ops[1].Value() <= 0x7F },
-			gRI(base, o.class|opFmtClassNotChange, immFmtByte),
-			o.translates[len(o.translates)-1],
-		)
+	o.translates[len(o.translates)-1] = pIf(
+		func(ops []Operand) bool { return ops[0].(Register).Size() != 8 && ops[1].Value() <= 0x7F },
+		gRI(base, o.class|opFmtClassNotChange, immFmtByte),
+		o.translates[len(o.translates)-1],
+	)
 	return o
 }
 

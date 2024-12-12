@@ -20,6 +20,7 @@ func TestAddRegReg(t *testing.T) {
 		t.Fatal(bytes)
 	}
 }
+
 func TestAddRegImm(t *testing.T) {
 	bytes0, err := x86.Translate(x86.Add, x86.Ecx, x86.Immediate(0xA4))
 	if err != nil {
