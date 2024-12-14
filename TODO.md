@@ -1,0 +1,128 @@
+# TODOs For a Working Assembler
+
+Currently completed: 0%
+
+- [ ] Implement memory pointers in parser and translation. (5%)
+- [ ] Connect the parser and translation layers. (5%)
+- [ ] Add ELF object file support. (50%)
+- [ ] Support for the original 8086/8088 instructions. (40%)
+  - [ ] ADC
+  - [ ] ADD
+  - [ ] AND
+  - [ ] CALL
+  - [ ] CBW
+  - [ ] CLC
+  - [ ] CLD
+  - [ ] CLI
+  - [ ] CMC
+  - [ ] CMP
+  - [ ] CMPSB
+  - [ ] CMPSW
+  - [ ] CWD
+  - [ ] DEC
+  - [ ] DIV
+  - [ ] HLT
+  - [ ] IDIV
+  - [ ] IMUL
+  - [ ] IN
+  - [ ] INC
+  - [ ] INT
+  - [ ] IRET
+  - [ ] Jcc
+    - [ ] JA
+    - [ ] JAE
+    - [ ] JBE
+    - [ ] JC
+    - [ ] JE
+    - [ ] JG
+    - [ ] JGE
+    - [ ] JL
+    - [ ] JLE
+    - [ ] JNA
+    - [ ] JNAE
+    - [ ] JNB
+    - [ ] JNBE
+    - [ ] JNC
+    - [ ] JNE
+    - [ ] JNG
+    - [ ] JNGE
+    - [ ] JNL
+    - [ ] JNLE
+    - [ ] JNO
+    - [ ] JNP
+    - [ ] JNS
+    - [ ] JNZ
+    - [ ] JO
+    - [ ] JP
+    - [ ] JPE
+    - [ ] JPO
+    - [ ] JS
+    - [ ] JZ
+  - [ ] JCXZ
+  - [ ] JMP
+  - [ ] LDS
+  - [ ] LEA
+  - [ ] LOCK
+  - [ ] LODSB
+  - [ ] LODSW
+  - [ ] LOOP
+  - [ ] LOOPx
+    - [ ] LOOPE
+    - [ ] LOOPNE
+    - [ ] LOOPNZ
+    - [ ] LOOPZ
+  - [ ] MOV
+  - [ ] MOV (control registers)
+  - [ ] MOV (debug registers)
+  - [ ] MOVSB
+  - [ ] MOVSW
+  - [ ] MUL
+  - [ ] NEG
+  - [ ] NOP
+  - [ ] NOP (multi-byte)
+  - [ ] NOT
+  - [ ] OR
+  - [ ] OUT
+  - [ ] POP
+  - [ ] POPF
+  - [ ] PUSH
+  - [ ] PUSHF
+  - [ ] RCL
+  - [ ] RCR
+  - [ ] REP
+  - [ ] REPxx
+    - [ ] REPE
+    - [ ] REPNE
+    - [ ] REPNZ
+    - [ ] REPZ
+  - [ ] RET
+  - [ ] ROL
+  - [ ] ROR
+  - [ ] SAL
+  - [ ] SAR
+  - [ ] SBB
+  - [ ] SCASB
+  - [ ] SCASW
+  - [ ] SHL
+  - [ ] SHR
+  - [ ] STC
+  - [ ] STD
+  - [ ] STI
+  - [ ] STOSB
+  - [ ] STOSW
+  - [ ] SUB
+  - [ ] TEST
+  - [ ] WAIT
+  - [ ] XCHG
+  - [ ] XLAT
+  - [ ] XOR
+
+- [ ] Support optional 32-bit only instructions.
+  - [ ] AAA
+  - [ ] AAD
+  - [ ] AAM
+  - [ ] AAS
+  - [ ] DAA
+  - [ ] DAS
+  - [ ] LAHF
+  - [ ] SAHF
