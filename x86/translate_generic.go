@@ -26,6 +26,12 @@ func gRI(base []byte, class byte, immFmt immFmt) func([]Operand) ([]byte, error)
 	}
 }
 
+func gRA(base []byte) func([]Operand) ([]byte, error) {
+	return func(ops []Operand) ([]byte, error) {
+		return genericRegAddr(base, ops[0].(Register), ops[1].(Address))
+	}
+}
+
 func cRI(base []byte, immFmt immFmt) func([]Operand) ([]byte, error) {
 	return func(ops []Operand) ([]byte, error) {
 		return compressedRegImm(base, immFmt, ops[0].(Register), ops[1].(Immediate))
@@ -63,6 +69,31 @@ func genericRegReg(
 	}
 
 	return append(prefixRR(reg1, reg2), opcode...), nil
+}
+
+func genericRegAddr(
+	base []byte,
+	reg Register,
+	addr Address,
+) ([]byte, error) {
+	// TODO: check @addr.size == reg.size
+	if reg.IsRex() && reg.IsRexExcluded() {
+		return nil, errors.New("given register cannot be encoded with a REX prefix")
+	}
+
+	opcode := genericRegNoPrefix(base, addr.Base, reg.EncodeByte(), addr.mod())
+	if addr.isSIB() {
+		// Set ModR/M byte's R/M field to 4 (0b100) as SIB is to be encoded.
+		opcode[len(opcode)-1] = (opcode[len(opcode)-1] & 0b11111000) | 0b100
+		opcode = append(opcode, addr.EncodeSib())
+	}
+	if addr.Displacement != 0 {
+		opcode = append(opcode, addr.disp()...)
+	} else if addr.isNil() { // HACK: Will be used for reallocation table. May change.
+		opcode = append(opcode, 0, 0, 0, 0)
+	}
+
+	return append(prefixR(reg), opcode...), nil
 }
 
 func genericReg(base []byte, reg Register, class byte) []byte {

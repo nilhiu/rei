@@ -47,6 +47,12 @@ func (o *opFmt) addRR(base []byte, mustSameSize bool) *opFmt {
 	return o
 }
 
+func (o *opFmt) addRA(base []byte) *opFmt {
+	o.operands = append(o.operands, []OpType{OpRegister, OpAddress})
+	o.translates = append(o.translates, gRA(base))
+	return o
+}
+
 func (o *opFmt) withARegCompressed(base []byte, immFmt immFmt) *opFmt {
 	o.translates[len(o.translates)-1] = pIf(
 		func(ops []Operand) bool { return ops[0].(Register).isARegister() },
