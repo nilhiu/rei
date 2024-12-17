@@ -152,12 +152,7 @@ func translateImmByFmt(imm uint, reg Register, immFmt immFmt) ([]byte, error) {
 }
 
 func encodeModRM(mod byte, reg byte, mem byte) byte {
-	switch mod {
-	case 0b11:
-		return (mod << 6) | (reg << 3) | mem
-	default:
-		panic("any 'mod' value other than 0b11 is unsupported for now")
-	}
+	return (mod << 6) | (reg << 3) | mem
 }
 
 func encodeRexR(reg Register) byte {
