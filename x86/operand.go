@@ -5,6 +5,7 @@ type OpType uint
 const (
 	OpImmediate OpType = iota
 	OpRegister
+	OpAddress
 )
 
 type Operand interface {
@@ -28,4 +29,12 @@ func (imm Immediate) Type() OpType {
 
 func (imm Immediate) Value() uint {
 	return uint(imm)
+}
+
+func (a Address) Type() OpType {
+	return OpAddress
+}
+
+func (a Address) Value() uint {
+	return uint(a.EncodeSib())
 }
