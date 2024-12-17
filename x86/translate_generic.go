@@ -57,7 +57,7 @@ func genericRegReg(
 		return nil, errors.New("given registers must be the same size")
 	}
 
-	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte())
+	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte(), 0b11)
 	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
@@ -67,10 +67,10 @@ func genericRegReg(
 
 func genericReg(base []byte, reg Register, class byte) []byte {
 	prefix := prefixR(reg)
-	return append(prefix, genericRegNoPrefix(base, reg, class)...)
+	return append(prefix, genericRegNoPrefix(base, reg, class, 0b11)...)
 }
 
-func genericRegNoPrefix(base []byte, reg Register, class byte) []byte {
+func genericRegNoPrefix(base []byte, reg Register, class byte, mod byte) []byte {
 	opcode := base
 	if reg.Size() != 8 && class&opFmtClassNotChange == 0 {
 		opcode = base
@@ -85,7 +85,7 @@ func genericRegNoPrefix(base []byte, reg Register, class byte) []byte {
 		opcode[len(opcode)-1] += reg.EncodeByte()
 		return opcode
 	} else {
-		return append(opcode, encodeModRM(0b11, class&0b111, reg.EncodeByte()))
+		return append(opcode, encodeModRM(mod, class&0b111, reg.EncodeByte()))
 	}
 }
 
