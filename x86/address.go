@@ -10,6 +10,10 @@ type Address struct {
 }
 
 func (a Address) EncodeSib() byte {
+	if a.isNil() {
+		return 0x25
+	}
+
 	var scale byte = 0
 	switch a.Scale {
 	case 1:
