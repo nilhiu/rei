@@ -187,7 +187,7 @@ func encodeModRM(mod byte, reg byte, mem byte) byte {
 }
 
 func encodeRexR(reg Register) byte {
-	return encodeRexRR(reg, Register(0))
+	return encodeRexRR(reg, NilReg)
 }
 
 func encodeRexRR(reg1 Register, reg2 Register) byte {

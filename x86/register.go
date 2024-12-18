@@ -20,6 +20,8 @@ func (reg Register) EncodeByte() byte {
 		return 6
 	case Bh, Di, Edi, Dil, Rdi, R15b, R15w, R15d, R15:
 		return 7
+	case NilReg:
+		return 0
 	default:
 		panic("given register is unsupported ")
 	}
@@ -35,6 +37,8 @@ func (reg Register) Size() uint {
 		return 32
 	case Rax, Rcx, Rdx, Rbx, Rsi, Rdi, Rsp, Rbp, R8, R9, R10, R11, R12, R13, R14, R15:
 		return 64
+	case NilReg:
+		return 0
 	}
 
 	panic("unreachable")
@@ -84,8 +88,8 @@ func (reg Register) isARegister() bool {
 
 // Register constants (WIP)
 const (
-	_            = iota
-	Rax Register = iota << 5
+	NilReg          = iota
+	Rax    Register = iota << 5
 	Rcx
 	Rdx
 	Rbx

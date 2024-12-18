@@ -45,10 +45,10 @@ func (a Address) disp() []byte {
 }
 
 func (a Address) isNil() bool {
-	return a.Scale == 0 && a.Index == Register(0) && a.Base == Register(0) &&
+	return a.Scale == 0 && a.Index == NilReg && a.Base == NilReg &&
 		a.Displacement == 0
 }
 
 func (a Address) isSIB() bool {
-	return (a.Scale != 1) || (a.Index != Register(0))
+	return (a.Scale != 1) || (a.Index != NilReg)
 }
