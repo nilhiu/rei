@@ -41,6 +41,52 @@ func TestMovRegReg(t *testing.T) {
 	testBytes(t, bytes, expected)
 }
 
+func TestMovRegAddrB(t *testing.T) {
+	// mov eax, [rbx]
+	addr := x86.Address{1, x86.NilReg, x86.Rbx, 0}
+	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
+	expectedBytes := []byte{0x8B, 0x03}
+	testBytes(t, bytes, expectedBytes)
+}
+
+func TestMovRegAddrIB(t *testing.T) {
+	// mov eax, [rbx+rax]
+	addr := x86.Address{1, x86.Rax, x86.Rbx, 0}
+	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
+	expectedBytes := []byte{0x8B, 0x04, 0x03}
+	testBytes(t, bytes, expectedBytes)
+}
+
+func TestMovRegAddrBD(t *testing.T) {
+	// mov eax, [rbx+0x7FFFFFFF]
+	addr := x86.Address{1, x86.NilReg, x86.Rbx, 0x7FFFFFFF}
+	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
+	expectedBytes := []byte{0x8B, 0x83, 0xFF, 0xFF, 0xFF, 0x7F}
+	testBytes(t, bytes, expectedBytes)
+}
+
+func TestMovRegAddrIBD(t *testing.T) {
+	// mov eax, [rbx+rax+0xFF]
+	addr := x86.Address{1, x86.Rax, x86.Rbx, 0xFF}
+	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
+	expectedBytes := []byte{0x8B, 0x84, 0x03, 0xFF, 0x00, 0x00, 0x00}
+	testBytes(t, bytes, expectedBytes)
+}
+
+func TestMovRegAddrSIBD(t *testing.T) {
+	// mov eax, [rbx+2*rax+0xFF]
+	addr := x86.Address{2, x86.Rax, x86.Rbx, 0xFF}
+	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
+	expectedBytes := []byte{0x8B, 0x84, 0x43, 0xFF, 0x00, 0x00, 0x00}
+	testBytes(t, bytes, expectedBytes)
+}
+
+func TestMovRegAddrNil(t *testing.T) {
+	bytes := testTranslate(t, x86.Mov, x86.Eax, x86.Address{})
+	expectedBytes := []byte{0x8B, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00}
+	testBytes(t, bytes, expectedBytes)
+}
+
 func testTranslate(t *testing.T, mnem x86.Mnemonic, ops ...x86.Operand) []byte {
 	bytes, err := x86.Translate(mnem, ops...)
 	if err != nil {
@@ -54,46 +100,6 @@ func testBytes(t *testing.T, b []byte, expect []byte) {
 		if b[i] != expect[i] {
 			t.Fatalf("Incorrect x86 translation detected. Byte #%d\nExpected: %X\n     Got: %X",
 				i, expect, b)
-		}
-	}
-}
-
-func TestMovRegImm(t *testing.T) {
-	bytes, err := x86.Translate(x86.Mov, x86.Ecx, x86.Immediate(591))
-	expectedBytes := []byte{0xB9, 0x4F, 0x02, 0x00, 0x00}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(expectedBytes) != len(bytes) {
-		t.Fatalf("Incorrect x86 translation detected. Expected byte count: %d, got: %d",
-			len(expectedBytes), len(bytes))
-	}
-
-	for i := 0; i < len(expectedBytes); i++ {
-		if bytes[i] != expectedBytes[i] {
-			t.Fatalf("Incorrect x86 translation detected. Byte #%d, expected: %X, got: %X",
-				i, expectedBytes[i], bytes[i])
-		}
-	}
-}
-
-func TestMovRegReg(t *testing.T) {
-	bytes, err := x86.Translate(x86.Mov, x86.R15w, x86.R15w)
-	expectedBytes := []byte{0x66, 0x45, 0x89, 0xFF}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(expectedBytes) != len(bytes) {
-		t.Fatalf("Incorrect x86 translation detected. Expected byte count: %d, got: %d",
-			len(expectedBytes), len(bytes))
-	}
-
-	for i := 0; i < len(expectedBytes); i++ {
-		if bytes[i] != expectedBytes[i] {
-			t.Fatalf("Incorrect x86 translation detected. Byte #%d, expected: %X, got: %X",
-				i, expectedBytes[i], bytes[i])
 		}
 	}
 }

@@ -43,7 +43,8 @@ func mnemToFmt(mnem Mnemonic) *opFmt {
 		return newOpFmt().
 			withClass(opFmtClassCompactReg).
 			addRI([]byte{0xB0}, immFmtNative).
-			addRR([]byte{0x88}, true)
+			addRR([]byte{0x88}, true).
+			addRA([]byte{0x8A})
 	}
 	return nil
 }
