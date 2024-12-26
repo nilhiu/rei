@@ -164,10 +164,6 @@ func prefixR(reg Register) []byte {
 func translateImmByFmt(imm uint, reg Register, immFmt immFmt) ([]byte, error) {
 	sz := immFmt.getBySize(reg.Size())
 
-	if imm > uint(1)<<sz {
-		return nil, errors.New("immediate too big")
-	}
-
 	switch sz {
 	case 8:
 		return []byte{byte(imm)}, nil
