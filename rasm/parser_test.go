@@ -31,8 +31,8 @@ func TestSectionParsing(t *testing.T) {
 		if expr.Id != rasm.SectionExpr {
 			t.Fatalf("Incorrect parsing detected. Expected section expression")
 		}
-		if expr.Children[0].Raw != expectedSectionIdents[i] {
-			t.Fatalf("Incorrect parsing detected. Expected: %q, got: %q", expectedSectionIdents[i], expr.Children[0].Raw)
+		if expr.Children[0].Raw() != expectedSectionIdents[i] {
+			t.Fatalf("Incorrect parsing detected. Expected: %q, got: %q", expectedSectionIdents[i], expr.Children[0].Raw())
 		}
 	}
 }
@@ -69,11 +69,11 @@ func TestLabelParsing(t *testing.T) {
 		if expr.Id != rasm.LabelExpr {
 			t.Fatalf("Incorrect parsing detected. Expected: LabelExpr(3), got: %d", expr.Id)
 		}
-		if expr.Root.Raw != expectedLabelNames[i] {
+		if expr.Root.Raw() != expectedLabelNames[i] {
 			t.Fatalf(
 				"Incorrect parsing detected. Expected: %q, got: %q",
 				expectedLabelNames[i],
-				expr.Root.Raw,
+				expr.Root.Raw(),
 			)
 		}
 	}

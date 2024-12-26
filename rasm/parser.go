@@ -34,7 +34,7 @@ func NewParserLexer(lxr *Lexer) *Parser {
 func (p *Parser) Next() Expr {
 	for {
 		tok := p.lxr.Next()
-		switch tok.Id & 0x1F {
+		switch tok.Id() {
 		case Newline:
 			continue
 		case Section:
@@ -56,7 +56,7 @@ func (p *Parser) parseInstruction() Expr {
 	children := []Token{}
 	for {
 		op := p.lxr.Next()
-		switch op.Id & 0x1F {
+		switch op.Id() {
 		case Newline:
 			return Expr{Id: InstrExpr, Root: p.root, Children: children}
 		case Identifier, Decimal, Hex, Octal, Register:
@@ -66,12 +66,12 @@ func (p *Parser) parseInstruction() Expr {
 			return Expr{
 				Id:       IllegalExpr,
 				Root:     p.root,
-				Children: append([]Token{{Raw: "expected operand or '\\n'"}}, children...),
+				Children: append([]Token{{raw: "expected operand or '\\n'"}}, children...),
 			}
 		}
 
 		div := p.lxr.Next()
-		switch div.Id & 0x1F {
+		switch div.Id() {
 		case Newline:
 			return Expr{Id: InstrExpr, Root: p.root, Children: children}
 		case Comma:
@@ -81,7 +81,7 @@ func (p *Parser) parseInstruction() Expr {
 			return Expr{
 				Id:       IllegalExpr,
 				Root:     p.root,
-				Children: append([]Token{{Raw: "expected '\\n' or ','"}}, children...),
+				Children: append([]Token{{raw: "expected '\\n' or ','"}}, children...),
 			}
 		}
 	}
@@ -89,16 +89,16 @@ func (p *Parser) parseInstruction() Expr {
 
 func (p *Parser) parseSection() Expr {
 	ident := p.lxr.Next()
-	if ident.Id != Identifier {
-		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{Raw: "expected identifier"}, ident}}
+	if ident.Id() != Identifier {
+		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{raw: "expected identifier"}, ident}}
 	}
 	return Expr{Id: SectionExpr, Root: p.root, Children: []Token{ident}}
 }
 
 func (p *Parser) parseLabel() Expr {
 	colon := p.lxr.Next()
-	if colon.Id != Colon {
-		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{Raw: "expected ':'"}, colon}}
+	if colon.Id() != Colon {
+		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{raw: "expected ':'"}, colon}}
 	}
 	return Expr{Id: LabelExpr, Root: p.root, Children: []Token{}}
 }

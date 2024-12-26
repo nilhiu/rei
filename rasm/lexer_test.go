@@ -15,13 +15,13 @@ func TestIdentifierLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw)
+		if tok.Raw() != expected[i] {
+			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -33,13 +33,13 @@ func TestDecimalLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw)
+		if tok.Raw() != expected[i] {
+			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -51,13 +51,13 @@ func TestHexLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] && tok.Id != rasm.Hex {
-			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw)
+		if tok.Raw() != expected[i] && tok.Id() != rasm.Hex {
+			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -70,8 +70,8 @@ func TestIllegalHexLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] && tok.Id != expectedId[i] {
-			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw)
+		if tok.Raw() != expected[i] && tok.Id() != expectedId[i] {
+			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 }
@@ -84,13 +84,13 @@ func TestOctalLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] && tok.Id != rasm.Octal {
-			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw)
+		if tok.Raw() != expected[i] && tok.Id() != rasm.Octal {
+			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -103,8 +103,8 @@ func TestIllegalOctalLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw != expected[i] && tok.Id != expectedId[i] {
-			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw)
+		if tok.Raw() != expected[i] && tok.Id() != expectedId[i] {
+			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 }
@@ -117,13 +117,13 @@ func TestIllegalLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id != rasm.Illegal && tok.Raw != expected[i] {
-			t.Fatalf(`Illegal lexing let through. Expected: %q, got: %q`, expected[i], tok.Raw)
+		if tok.Id() != rasm.Illegal && tok.Raw() != expected[i] {
+			t.Fatalf(`Illegal lexing let through. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -139,13 +139,13 @@ func TestGeneralKeywordLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id != expectedId[i] && tok.Raw != expected[i] {
-			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw)
+		if tok.Id() != expectedId[i] && tok.Raw() != expected[i] {
+			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -163,17 +163,17 @@ func TestX86KeywordLexing(t *testing.T) {
 
 	for i := 0; i < len(expected)-1; i++ {
 		tok := lxr.Next()
-		if (tok.Id&0x1F) != rasm.Register && tok.Raw != expected[i] {
-			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw)
+		if tok.Id() != rasm.Register && tok.Raw() != expected[i] {
+			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
-	if tok := lxr.Next(); (tok.Id & 0x1F) != rasm.Instruction {
-		t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[len(expected)-1], tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Instruction {
+		t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[len(expected)-1], tok.Raw())
 	}
 
-	if tok := lxr.Next(); tok.Id != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw)
+	if tok := lxr.Next(); tok.Id() != rasm.Eof {
+		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
 	}
 }
 
@@ -208,8 +208,8 @@ func TestLexPositioning(t *testing.T) {
 
 	for i := 0; i < 14; i++ {
 		tok := lxr.Next()
-		if tok.Pos != expected[i] {
-			t.Fatalf(`Incorrect lexer positioning detected. Expected: %+v, got: %+v (%q)`, expected[i], tok.Pos, tok.Raw)
+		if tok.Pos() != expected[i] {
+			t.Fatalf(`Incorrect lexer positioning detected. Expected: %+v, got: %+v (%q)`, expected[i], tok.Pos(), tok.Raw())
 		}
 	}
 }

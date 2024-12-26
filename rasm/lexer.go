@@ -36,9 +36,25 @@ const (
 // and in the cases of `Instruction` and `Register` the upper 27 (or 59 if 64-bit)
 // bits contains the instruction/register identifiers.
 type Token struct {
-	Pos Position
-	Id  TokenId
-	Raw string
+	pos Position
+	id  TokenId
+	raw string
+}
+
+func (t *Token) Pos() Position {
+	return t.pos
+}
+
+func (t *Token) Id() TokenId {
+	return t.id & 0x1f
+}
+
+func (t *Token) SpecId() uint {
+	return (uint(t.id) >> 5) << 5
+}
+
+func (t *Token) Raw() string {
+	return t.raw
 }
 
 type Lexer struct {
@@ -58,7 +74,7 @@ func (l *Lexer) Next() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{Pos: l.pos, Id: Eof, Raw: ""}
+				return Token{pos: l.pos, id: Eof, raw: ""}
 			}
 			panic(err)
 		}
@@ -67,15 +83,15 @@ func (l *Lexer) Next() Token {
 		l.pos.Col++
 		switch r {
 		case ',':
-			return Token{Pos: pos, Id: Comma, Raw: ","}
+			return Token{pos: pos, id: Comma, raw: ","}
 		case ':':
-			return Token{Pos: pos, Id: Colon, Raw: ":"}
+			return Token{pos: pos, id: Colon, raw: ":"}
 		case '0':
 			return l.lexZero()
 		case '\n':
 			l.pos.Line++
 			l.pos.Col = 0
-			return Token{Pos: pos, Id: Newline, Raw: "\\n"}
+			return Token{pos: pos, id: Newline, raw: "\\n"}
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -87,7 +103,7 @@ func (l *Lexer) Next() Token {
 				return l.lexIdentifier()
 			}
 
-			return Token{Pos: pos, Id: Illegal, Raw: string(r)}
+			return Token{pos: pos, id: Illegal, raw: string(r)}
 		}
 	}
 }
@@ -103,7 +119,7 @@ func (l *Lexer) lexZero() Token {
 	r, _, err := l.rd.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			return Token{Pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, Id: Decimal, Raw: "0"}
+			return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
 		}
 		panic(err)
 	}
@@ -118,12 +134,12 @@ func (l *Lexer) lexZero() Token {
 		if unicode.IsDigit(r) {
 			l.unread()
 			tok := l.lexDecimal()
-			tok.Raw = string('0') + tok.Raw
-			tok.Pos.Col--
+			tok.raw = string('0') + tok.raw
+			tok.pos.Col--
 			return tok
 		} else {
 			l.unread()
-			return Token{Pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, Id: Decimal, Raw: "0"}
+			return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
 		}
 	}
 }
@@ -136,7 +152,7 @@ func (l *Lexer) lexHex() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{Pos: pos, Id: Hex, Raw: raw}
+				return Token{pos: pos, id: Hex, raw: raw}
 			}
 			panic(err)
 		}
@@ -151,9 +167,9 @@ func (l *Lexer) lexHex() Token {
 			} else {
 				l.unread()
 				if raw == "" {
-					return Token{Pos: pos, Id: Illegal, Raw: "hex prefix without logical continuation"}
+					return Token{pos: pos, id: Illegal, raw: "hex prefix without logical continuation"}
 				}
-				return Token{Pos: pos, Id: Hex, Raw: raw}
+				return Token{pos: pos, id: Hex, raw: raw}
 			}
 		}
 	}
@@ -167,7 +183,7 @@ func (l *Lexer) lexOctal() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{Pos: pos, Id: Octal, Raw: raw}
+				return Token{pos: pos, id: Octal, raw: raw}
 			}
 			panic(err)
 		}
@@ -179,9 +195,9 @@ func (l *Lexer) lexOctal() Token {
 		default:
 			l.unread()
 			if raw == "" {
-				return Token{Pos: pos, Id: Illegal, Raw: "octal prefix without logical continuation"}
+				return Token{pos: pos, id: Illegal, raw: "octal prefix without logical continuation"}
 			}
-			return Token{Pos: pos, Id: Octal, Raw: raw}
+			return Token{pos: pos, id: Octal, raw: raw}
 		}
 	}
 }
@@ -200,7 +216,7 @@ func (l *Lexer) lexDecimal() Token {
 			raw = raw + string(r)
 		} else {
 			l.unread()
-			return Token{Pos: pos, Id: Decimal, Raw: raw}
+			return Token{pos: pos, id: Decimal, raw: raw}
 		}
 	}
 }
@@ -212,7 +228,7 @@ func (l *Lexer) lexIdentifier() Token {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
 			if err == io.EOF {
-				return Token{Pos: pos, Id: identTokenId(raw), Raw: raw}
+				return Token{pos: pos, id: identTokenId(raw), raw: raw}
 			}
 			panic(err)
 		}
@@ -222,7 +238,7 @@ func (l *Lexer) lexIdentifier() Token {
 			raw = raw + string(r)
 		} else {
 			l.unread()
-			return Token{Pos: pos, Id: identTokenId(raw), Raw: raw}
+			return Token{pos: pos, id: identTokenId(raw), raw: raw}
 		}
 	}
 }
