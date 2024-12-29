@@ -159,7 +159,7 @@ func (l *Lexer) lexHex() Token {
 
 		l.pos.Col++
 		switch r {
-		case 'A', 'B', 'C', 'D', 'E', 'F':
+		case 'A', 'B', 'C', 'D', 'E', 'F', 'a', 'b', 'c', 'd', 'e', 'f':
 			raw = raw + string(r)
 		default:
 			if unicode.IsDigit(r) {
