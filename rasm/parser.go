@@ -59,7 +59,7 @@ func (p *Parser) parseInstruction() Expr {
 	for {
 		op := p.lxr.Next()
 		switch op.Id() {
-		case Newline:
+		case Newline, Eof:
 			return Expr{Id: InstrExpr, Root: p.root, Children: children}
 		case Identifier, Decimal, Hex, Octal, Register:
 			children = append(children, op)
@@ -74,7 +74,7 @@ func (p *Parser) parseInstruction() Expr {
 
 		div := p.lxr.Next()
 		switch div.Id() {
-		case Newline:
+		case Newline, Eof:
 			return Expr{Id: InstrExpr, Root: p.root, Children: children}
 		case Comma:
 			continue
