@@ -71,12 +71,9 @@ func NewLexer(rd io.Reader) *Lexer {
 
 func (l *Lexer) Next() Token {
 	for {
-		r, _, err := l.rd.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return Token{pos: l.pos, id: Eof, raw: ""}
-			}
-			panic(err)
+		r, isEof := l.read()
+		if isEof {
+			return Token{pos: l.pos, id: Eof, raw: ""}
 		}
 
 		pos := l.pos
@@ -115,13 +112,22 @@ func (l *Lexer) unread() {
 	l.pos.Col--
 }
 
-func (l *Lexer) lexZero() Token {
+func (l *Lexer) read() (rune, bool) {
 	r, _, err := l.rd.ReadRune()
 	if err != nil {
 		if err == io.EOF {
-			return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
+			return 0, true
 		}
 		panic(err)
+	}
+
+	return r, false
+}
+
+func (l *Lexer) lexZero() Token {
+	r, isEof := l.read()
+	if isEof {
+		return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
 	}
 
 	l.pos.Col++
@@ -149,12 +155,9 @@ func (l *Lexer) lexHex() Token {
 	pos.Col -= 2
 	var raw string
 	for {
-		r, _, err := l.rd.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return Token{pos: pos, id: Hex, raw: raw}
-			}
-			panic(err)
+		r, isEof := l.read()
+		if isEof {
+			return Token{pos: pos, id: Hex, raw: raw}
 		}
 
 		l.pos.Col++
@@ -180,12 +183,9 @@ func (l *Lexer) lexOctal() Token {
 	pos.Col -= 2
 	var raw string
 	for {
-		r, _, err := l.rd.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return Token{pos: pos, id: Octal, raw: raw}
-			}
-			panic(err)
+		r, isEof := l.read()
+		if isEof {
+			return Token{pos: pos, id: Octal, raw: raw}
 		}
 
 		l.pos.Col++
@@ -210,12 +210,9 @@ func (l *Lexer) lexDecimal() Token {
 	pos := l.pos
 	var raw string
 	for {
-		r, _, err := l.rd.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return Token{pos: pos, id: Decimal, raw: raw}
-			}
-			panic(err)
+		r, isEof := l.read()
+		if isEof {
+			return Token{pos: pos, id: Decimal, raw: raw}
 		}
 
 		l.pos.Col++
@@ -232,12 +229,9 @@ func (l *Lexer) lexIdentifier() Token {
 	pos := l.pos
 	var raw string
 	for {
-		r, _, err := l.rd.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return Token{pos: pos, id: identTokenId(raw), raw: raw}
-			}
-			panic(err)
+		r, isEof := l.read()
+		if isEof {
+			return Token{pos: pos, id: identTokenId(raw), raw: raw}
 		}
 
 		l.pos.Col++
