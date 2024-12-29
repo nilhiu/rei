@@ -46,6 +46,8 @@ func (p *Parser) Next() Expr {
 		case Identifier:
 			p.root = tok
 			return p.parseLabel()
+		case Eof:
+			return Expr{EofExpr, tok, nil}
 		}
 
 		return Expr{Id: IllegalExpr, Root: tok}
