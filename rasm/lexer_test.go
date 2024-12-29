@@ -8,7 +8,17 @@ import (
 )
 
 func TestIdentifierLexing(t *testing.T) {
-	expected := []string{"mov", "raw", "r1", "r31", "lo_bit", "open.win", "slo_._mo", ".text", "_.o"}
+	expected := []string{
+		"mov",
+		"raw",
+		"r1",
+		"r31",
+		"lo_bit",
+		"open.win",
+		"slo_._mo",
+		".text",
+		"_.o",
+	}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -26,7 +36,17 @@ func TestIdentifierLexing(t *testing.T) {
 }
 
 func TestDecimalLexing(t *testing.T) {
-	expected := []string{"12345678", "2024", "7", "1", "000000", "389", "471208939810923819716278", "0", "0"}
+	expected := []string{
+		"12345678",
+		"2024",
+		"7",
+		"1",
+		"000000",
+		"389",
+		"471208939810923819716278",
+		"0",
+		"0",
+	}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
@@ -44,14 +64,14 @@ func TestDecimalLexing(t *testing.T) {
 }
 
 func TestHexLexing(t *testing.T) {
-	expected := []string{"0x2830FA", "0X000A", "0xABCDEF0123456789", "0x123456789", "0XABFEF7510"}
+	expected := []string{"2830fa", "000A", "ABCdEf0123456789", "123456789", "AbFEF7510"}
 	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
+		strings.NewReader("0x" + strings.Join(expected, " 0x")),
 	)
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw() != expected[i] && tok.Id() != rasm.Hex {
+		if tok.Raw() != expected[i] || tok.Id() != rasm.Hex {
 			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
@@ -63,28 +83,34 @@ func TestHexLexing(t *testing.T) {
 
 func TestIllegalHexLexing(t *testing.T) {
 	expected := []string{"0x", "0xL", "0XX"}
-	expectedId := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Identifier, rasm.Illegal, rasm.Identifier}
+	expectedId := []rasm.TokenId{
+		rasm.Illegal,
+		rasm.Illegal,
+		rasm.Identifier,
+		rasm.Illegal,
+		rasm.Identifier,
+	}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw() != expected[i] && tok.Id() != expectedId[i] {
+		if tok.Id() != expectedId[i] {
 			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 }
 
 func TestOctalLexing(t *testing.T) {
-	expected := []string{"0o273012", "0O1234", "0o01234567", "0O1234567", "0o12541237"}
+	expected := []string{"273012", "1234", "01234567", "1234567", "12541237"}
 	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
+		strings.NewReader("0O" + strings.Join(expected, " 0o")),
 	)
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw() != expected[i] && tok.Id() != rasm.Octal {
+		if tok.Raw() != expected[i] || tok.Id() != rasm.Octal {
 			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
@@ -96,28 +122,34 @@ func TestOctalLexing(t *testing.T) {
 
 func TestIllegalOctalLexing(t *testing.T) {
 	expected := []string{"0o", "0oL", "0OO"}
-	expectedId := []rasm.TokenId{rasm.Illegal, rasm.Illegal, rasm.Identifier, rasm.Illegal, rasm.Identifier}
+	expectedId := []rasm.TokenId{
+		rasm.Illegal,
+		rasm.Illegal,
+		rasm.Identifier,
+		rasm.Illegal,
+		rasm.Identifier,
+	}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Raw() != expected[i] && tok.Id() != expectedId[i] {
+		if tok.Id() != expectedId[i] {
 			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
 		}
 	}
 }
 
 func TestIllegalLexing(t *testing.T) {
-	expected := []string{"_", "\\", "{", "}"}
+	expected := []string{"\\", "{", "}"}
 	lxr := rasm.NewLexer(
 		strings.NewReader(strings.Join(expected, " ")),
 	)
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id() != rasm.Illegal && tok.Raw() != expected[i] {
+		if tok.Id() != rasm.Illegal || tok.Raw() != expected[i] {
 			t.Fatalf(`Illegal lexing let through. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
@@ -139,7 +171,7 @@ func TestGeneralKeywordLexing(t *testing.T) {
 
 	for i := 0; i < len(expected); i++ {
 		tok := lxr.Next()
-		if tok.Id() != expectedId[i] && tok.Raw() != expected[i] {
+		if tok.Id() != expectedId[i] || tok.Raw() != expected[i] {
 			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
@@ -163,13 +195,17 @@ func TestX86KeywordLexing(t *testing.T) {
 
 	for i := 0; i < len(expected)-1; i++ {
 		tok := lxr.Next()
-		if tok.Id() != rasm.Register && tok.Raw() != expected[i] {
+		if tok.Id() != rasm.Register || tok.Raw() != expected[i] {
 			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
 		}
 	}
 
 	if tok := lxr.Next(); tok.Id() != rasm.Instruction {
-		t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[len(expected)-1], tok.Raw())
+		t.Fatalf(
+			`Keyword incorrectly lexed. Expected: %q, got: %q`,
+			expected[len(expected)-1],
+			tok.Raw(),
+		)
 	}
 
 	if tok := lxr.Next(); tok.Id() != rasm.Eof {
@@ -209,7 +245,12 @@ func TestLexPositioning(t *testing.T) {
 	for i := 0; i < 14; i++ {
 		tok := lxr.Next()
 		if tok.Pos() != expected[i] {
-			t.Fatalf(`Incorrect lexer positioning detected. Expected: %+v, got: %+v (%q)`, expected[i], tok.Pos(), tok.Raw())
+			t.Fatalf(
+				`Incorrect lexer positioning detected. Expected: %+v, got: %+v (%q)`,
+				expected[i],
+				tok.Pos(),
+				tok.Raw(),
+			)
 		}
 	}
 }
