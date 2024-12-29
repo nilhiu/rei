@@ -92,7 +92,11 @@ func (p *Parser) parseInstruction() Expr {
 func (p *Parser) parseSection() Expr {
 	ident := p.lxr.Next()
 	if ident.Id() != Identifier {
-		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{raw: "expected identifier"}, ident}}
+		return Expr{
+			Id:       IllegalExpr,
+			Root:     p.root,
+			Children: []Token{{raw: "expected identifier"}, ident},
+		}
 	}
 	return Expr{Id: SectionExpr, Root: p.root, Children: []Token{ident}}
 }

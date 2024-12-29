@@ -32,7 +32,11 @@ func TestSectionParsing(t *testing.T) {
 			t.Fatalf("Incorrect parsing detected. Expected section expression")
 		}
 		if expr.Children[0].Raw() != expectedSectionIdents[i] {
-			t.Fatalf("Incorrect parsing detected. Expected: %q, got: %q", expectedSectionIdents[i], expr.Children[0].Raw())
+			t.Fatalf(
+				"Incorrect parsing detected. Expected: %q, got: %q",
+				expectedSectionIdents[i],
+				expr.Children[0].Raw(),
+			)
 		}
 	}
 }

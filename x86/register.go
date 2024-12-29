@@ -29,7 +29,8 @@ func (reg Register) EncodeByte() byte {
 
 func (reg Register) Size() uint {
 	switch reg {
-	case Al, Cl, Dl, Bl, Sil, Dil, Spl, Bpl, R8b, R9b, R10b, R11b, R12b, R13b, R14b, R15b, Ah, Ch, Dh, Bh:
+	case Al, Cl, Dl, Bl, Sil, Dil, Spl, Bpl, R8b, R9b, R10b,
+		R11b, R12b, R13b, R14b, R15b, Ah, Ch, Dh, Bh:
 		return 8
 	case Ax, Cx, Dx, Bx, Si, Di, Sp, Bp, R8w, R9w, R10w, R11w, R12w, R13w, R14w, R15w:
 		return 16
