@@ -195,7 +195,11 @@ func (l *Lexer) lexOctal() Token {
 		default:
 			l.unread()
 			if raw == "" {
-				return Token{pos: pos, id: Illegal, raw: "octal prefix without logical continuation"}
+				return Token{
+					pos: pos,
+					id:  Illegal,
+					raw: "octal prefix without logical continuation",
+				}
 			}
 			return Token{pos: pos, id: Octal, raw: raw}
 		}
@@ -208,6 +212,9 @@ func (l *Lexer) lexDecimal() Token {
 	for {
 		r, _, err := l.rd.ReadRune()
 		if err != nil {
+			if err == io.EOF {
+				return Token{pos: pos, id: Decimal, raw: raw}
+			}
 			panic(err)
 		}
 
