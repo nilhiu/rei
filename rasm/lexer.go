@@ -60,12 +60,14 @@ func (t *Token) Raw() string {
 type Lexer struct {
 	rd  *bufio.Reader
 	pos Position
+	sb  strings.Builder
 }
 
 func NewLexer(rd io.Reader) *Lexer {
 	return &Lexer{
 		rd:  bufio.NewReader(rd),
 		pos: Position{Line: 1, Col: 0},
+		sb:  strings.Builder{},
 	}
 }
 
@@ -124,6 +126,19 @@ func (l *Lexer) read() (rune, bool) {
 	return r, false
 }
 
+func (l *Lexer) writeStr(r rune) {
+	_, err := l.sb.WriteRune(r)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (l *Lexer) popStr() string {
+	str := l.sb.String()
+	l.sb.Reset()
+	return str
+}
+
 func (l *Lexer) lexZero() Token {
 	r, isEof := l.read()
 	if isEof {
@@ -153,22 +168,22 @@ func (l *Lexer) lexZero() Token {
 func (l *Lexer) lexHex() Token {
 	pos := l.pos
 	pos.Col -= 2
-	var raw string
 	for {
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: pos, id: Hex, raw: raw}
+			return Token{pos: pos, id: Hex, raw: l.popStr()}
 		}
 
 		l.pos.Col++
 		switch r {
 		case 'A', 'B', 'C', 'D', 'E', 'F', 'a', 'b', 'c', 'd', 'e', 'f':
-			raw = raw + string(r)
+			l.writeStr(r)
 		default:
 			if unicode.IsDigit(r) {
-				raw = raw + string(r)
+				l.writeStr(r)
 			} else {
 				l.unread()
+				raw := l.popStr()
 				if raw == "" {
 					return Token{pos: pos, id: Illegal, raw: "hex prefix without logical continuation"}
 				}
@@ -181,19 +196,19 @@ func (l *Lexer) lexHex() Token {
 func (l *Lexer) lexOctal() Token {
 	pos := l.pos
 	pos.Col -= 2
-	var raw string
 	for {
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: pos, id: Octal, raw: raw}
+			return Token{pos: pos, id: Octal, raw: l.popStr()}
 		}
 
 		l.pos.Col++
 		switch r {
 		case '0', '1', '2', '3', '4', '5', '6', '7':
-			raw = raw + string(r)
+			l.writeStr(r)
 		default:
 			l.unread()
+			raw := l.popStr()
 			if raw == "" {
 				return Token{
 					pos: pos,
@@ -208,37 +223,37 @@ func (l *Lexer) lexOctal() Token {
 
 func (l *Lexer) lexDecimal() Token {
 	pos := l.pos
-	var raw string
 	for {
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: pos, id: Decimal, raw: raw}
+			return Token{pos: pos, id: Decimal, raw: l.popStr()}
 		}
 
 		l.pos.Col++
 		if unicode.IsDigit(r) {
-			raw = raw + string(r)
+			l.writeStr(r)
 		} else {
 			l.unread()
-			return Token{pos: pos, id: Decimal, raw: raw}
+			return Token{pos: pos, id: Decimal, raw: l.popStr()}
 		}
 	}
 }
 
 func (l *Lexer) lexIdentifier() Token {
 	pos := l.pos
-	var raw string
 	for {
 		r, isEof := l.read()
 		if isEof {
+			raw := l.popStr()
 			return Token{pos: pos, id: identTokenId(raw), raw: raw}
 		}
 
 		l.pos.Col++
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
-			raw = raw + string(r)
+			l.writeStr(r)
 		} else {
 			l.unread()
+			raw := l.popStr()
 			return Token{pos: pos, id: identTokenId(raw), raw: raw}
 		}
 	}
