@@ -73,13 +73,12 @@ func NewLexer(rd io.Reader) *Lexer {
 
 func (l *Lexer) Next() Token {
 	for {
+		pos := l.pos
 		r, isEof := l.read()
 		if isEof {
 			return Token{pos: l.pos, id: Eof, raw: ""}
 		}
 
-		pos := l.pos
-		l.pos.Col++
 		switch r {
 		case ',':
 			return Token{pos: pos, id: Comma, raw: ","}
@@ -115,6 +114,7 @@ func (l *Lexer) unread() {
 }
 
 func (l *Lexer) read() (rune, bool) {
+	l.pos.Col++
 	r, _, err := l.rd.ReadRune()
 	if err != nil {
 		if err == io.EOF {
@@ -145,7 +145,6 @@ func (l *Lexer) lexZero() Token {
 		return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
 	}
 
-	l.pos.Col++
 	switch r {
 	case 'x', 'X':
 		return l.lexHex()
@@ -174,7 +173,6 @@ func (l *Lexer) lexHex() Token {
 			return Token{pos: pos, id: Hex, raw: l.popStr()}
 		}
 
-		l.pos.Col++
 		switch r {
 		case 'A', 'B', 'C', 'D', 'E', 'F', 'a', 'b', 'c', 'd', 'e', 'f':
 			l.writeStr(r)
@@ -202,7 +200,6 @@ func (l *Lexer) lexOctal() Token {
 			return Token{pos: pos, id: Octal, raw: l.popStr()}
 		}
 
-		l.pos.Col++
 		switch r {
 		case '0', '1', '2', '3', '4', '5', '6', '7':
 			l.writeStr(r)
@@ -229,7 +226,6 @@ func (l *Lexer) lexDecimal() Token {
 			return Token{pos: pos, id: Decimal, raw: l.popStr()}
 		}
 
-		l.pos.Col++
 		if unicode.IsDigit(r) {
 			l.writeStr(r)
 		} else {
@@ -248,7 +244,6 @@ func (l *Lexer) lexIdentifier() Token {
 			return Token{pos: pos, id: identTokenId(raw), raw: raw}
 		}
 
-		l.pos.Col++
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
 			l.writeStr(r)
 		} else {
