@@ -1,105 +1,163 @@
 package x86_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/nilhiu/rei/x86"
 )
 
-// TODO: Need to create much more efficient unit tests.
-
-func TestAddRegReg(t *testing.T) {
-	bytes := testTranslate(t, x86.Add, x86.Rcx, x86.Rax)
-	expected := []byte{0x48, 0x01, 0xC1}
-	testBytes(t, bytes, expected)
-}
-
-func TestAddRegImm(t *testing.T) {
-	bytes0 := testTranslate(t, x86.Add, x86.Ecx, x86.Immediate(0xA4))
-	bytes1 := testTranslate(t, x86.Add, x86.Ax, x86.Immediate(0xA4A1))
-	bytes2 := testTranslate(t, x86.Add, x86.Rax, x86.Immediate(0xA4))
-	bytes3 := testTranslate(t, x86.Add, x86.Rbx, x86.Immediate(0x7F))
-	all := append(append(append(bytes0, bytes1...), bytes2...), bytes3...)
-	expected := []byte{
-		0x81, 0xC1, 0xA4, 0x00, 0x00, 0x00,
-		0x66, 0x05, 0xA1, 0xA4,
-		0x48, 0x05, 0xA4, 0x00, 0x00, 0x00,
-		0x48, 0x83, 0xC3, 0x7F,
+func TestTranslate(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		mnem    x86.Mnemonic
+		ops     []x86.Operand
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "Translate 'add rcx, rax'",
+			mnem:    x86.Add,
+			ops:     []x86.Operand{x86.Rcx, x86.Rax},
+			want:    []byte{0x48, 0x01, 0xc1},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'add ecx, 0xa4'",
+			mnem:    x86.Add,
+			ops:     []x86.Operand{x86.Ecx, x86.Immediate(0xa4)},
+			want:    []byte{0x81, 0xc1, 0xa4, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'add ax, 0xa4a1'",
+			mnem:    x86.Add,
+			ops:     []x86.Operand{x86.Ax, x86.Immediate(0xa4a1)},
+			want:    []byte{0x66, 0x05, 0xa1, 0xa4},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'add rax, 0xa4'",
+			mnem:    x86.Add,
+			ops:     []x86.Operand{x86.Rax, x86.Immediate(0xa4)},
+			want:    []byte{0x48, 0x05, 0xa4, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'add rbx, 0x7f' (compressed)",
+			mnem:    x86.Add,
+			ops:     []x86.Operand{x86.Rbx, x86.Immediate(0x7f)},
+			want:    []byte{0x48, 0x83, 0xc3, 0x7f},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov rax, 591'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Rax, x86.Immediate(591)},
+			want:    []byte{0x48, 0xB8, 0x4F, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov ecx, 591'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Ecx, x86.Immediate(591)},
+			want:    []byte{0xb9, 0x4f, 0x02, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov r15w, r15w'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.R15w, x86.R15w},
+			want:    []byte{0x66, 0x45, 0x89, 0xff},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, [rbx]'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{1, x86.NilReg, x86.Rbx, 0}},
+			want:    []byte{0x8b, 0x03},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, [rbx+rax]'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{1, x86.Rax, x86.Rbx, 0}},
+			want:    []byte{0x8b, 0x04, 0x03},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, [rbx+0x7fffffff]'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{1, x86.NilReg, x86.Rbx, 0x7fffffff}},
+			want:    []byte{0x8b, 0x83, 0xff, 0xff, 0xff, 0x7f},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, [rbx+rax+0xff]'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{1, x86.Rax, x86.Rbx, 0xff}},
+			want:    []byte{0x8b, 0x84, 0x03, 0xff, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, [rbx+2*rax+0xff]'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{2, x86.Rax, x86.Rbx, 0xff}},
+			want:    []byte{0x8b, 0x84, 0x43, 0xff, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov eax, []'",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.Eax, x86.Address{}},
+			want:    []byte{0x8b, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00},
+			wantErr: false,
+		},
+		{
+			name:    "Translate 'mov r15b, ah' should error",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.R15b, x86.Ah},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Translate 'mov r10, ax' should error",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{x86.R10, x86.Ax},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Should give an error on unknown mnemonic",
+			mnem:    x86.Mnemonic(0xdeadbeef),
+			ops:     []x86.Operand{},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Should give an error on unsupported operands for mnemonic",
+			mnem:    x86.Mov,
+			ops:     []x86.Operand{},
+			want:    nil,
+			wantErr: true,
+		},
 	}
-	testBytes(t, all, expected)
-}
-
-func TestMovRegImm(t *testing.T) {
-	bytes := testTranslate(t, x86.Mov, x86.Ecx, x86.Immediate(591))
-	expected := []byte{0xB9, 0x4F, 0x02, 0x00, 0x00}
-	testBytes(t, bytes, expected)
-}
-
-func TestMovRegReg(t *testing.T) {
-	bytes := testTranslate(t, x86.Mov, x86.R15w, x86.R15w)
-	expected := []byte{0x66, 0x45, 0x89, 0xFF}
-	testBytes(t, bytes, expected)
-}
-
-func TestMovRegAddrB(t *testing.T) {
-	// mov eax, [rbx]
-	addr := x86.Address{1, x86.NilReg, x86.Rbx, 0}
-	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
-	expectedBytes := []byte{0x8B, 0x03}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func TestMovRegAddrIB(t *testing.T) {
-	// mov eax, [rbx+rax]
-	addr := x86.Address{1, x86.Rax, x86.Rbx, 0}
-	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
-	expectedBytes := []byte{0x8B, 0x04, 0x03}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func TestMovRegAddrBD(t *testing.T) {
-	// mov eax, [rbx+0x7FFFFFFF]
-	addr := x86.Address{1, x86.NilReg, x86.Rbx, 0x7FFFFFFF}
-	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
-	expectedBytes := []byte{0x8B, 0x83, 0xFF, 0xFF, 0xFF, 0x7F}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func TestMovRegAddrIBD(t *testing.T) {
-	// mov eax, [rbx+rax+0xFF]
-	addr := x86.Address{1, x86.Rax, x86.Rbx, 0xFF}
-	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
-	expectedBytes := []byte{0x8B, 0x84, 0x03, 0xFF, 0x00, 0x00, 0x00}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func TestMovRegAddrSIBD(t *testing.T) {
-	// mov eax, [rbx+2*rax+0xFF]
-	addr := x86.Address{2, x86.Rax, x86.Rbx, 0xFF}
-	bytes := testTranslate(t, x86.Mov, x86.Eax, addr)
-	expectedBytes := []byte{0x8B, 0x84, 0x43, 0xFF, 0x00, 0x00, 0x00}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func TestMovRegAddrNil(t *testing.T) {
-	bytes := testTranslate(t, x86.Mov, x86.Eax, x86.Address{})
-	expectedBytes := []byte{0x8B, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00}
-	testBytes(t, bytes, expectedBytes)
-}
-
-func testTranslate(t *testing.T, mnem x86.Mnemonic, ops ...x86.Operand) []byte {
-	bytes, err := x86.Translate(mnem, ops...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return bytes
-}
-
-func testBytes(t *testing.T, b []byte, expect []byte) {
-	for i := 0; i < len(expect); i++ {
-		if b[i] != expect[i] {
-			t.Fatalf("Incorrect x86 translation detected. Byte #%d\nExpected: %X\n     Got: %X",
-				i, expect, b)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := x86.Translate(tt.mnem, tt.ops...)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("Translate() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("Translate() succeeded unexpectedly")
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("Translate() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

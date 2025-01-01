@@ -1,84 +1,141 @@
 package rasm_test
 
 import (
+	"io"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/nilhiu/rei/rasm"
+	"github.com/nilhiu/rei/x86"
 )
 
-func TestIllegalParsing(t *testing.T) {
-	lxr := rasm.NewLexer(
-		strings.NewReader("section :\nident,\nmov 0 1\n\n,\nmov :"),
-	)
-	p := rasm.NewParserLexer(lxr)
-	for i := 0; i < 5; i++ {
-		expr := p.Next()
-		if expr.Id != rasm.IllegalExpr {
-			t.Fatalf("Illegal parsing let through. Got: %d", expr.Id)
-		}
+func TestParser_Next(t *testing.T) {
+	tests := []struct {
+		name string
+		rd   io.Reader
+		want rasm.Expr
+	}{
+		{
+			name: "Should parse section expression",
+			rd:   strings.NewReader("\nsection .bss"),
+			want: rasm.Expr{
+				rasm.SectionExpr,
+				rasm.NewToken(rasm.Position{2, 0}, rasm.Section, "section"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{2, 8}, rasm.Identifier, ".bss"),
+				},
+			},
+		},
+		{
+			name: "Should parse instruction expression",
+			rd:   strings.NewReader("add"),
+			want: rasm.Expr{
+				rasm.InstrExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Add)|rasm.Instruction, "add"),
+				[]rasm.Token{},
+			},
+		},
+		{
+			name: "Should parse instruction expression (with operands)",
+			rd:   strings.NewReader("mov eax, 512, 0xff, 0o777, some_ident"),
+			want: rasm.Expr{
+				rasm.InstrExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{1, 4}, rasm.TokenId(x86.Eax)|rasm.Register, "eax"),
+					rasm.NewToken(rasm.Position{1, 9}, rasm.Decimal, "512"),
+					rasm.NewToken(rasm.Position{1, 14}, rasm.Hex, "ff"),
+					rasm.NewToken(rasm.Position{1, 20}, rasm.Octal, "777"),
+					rasm.NewToken(rasm.Position{1, 27}, rasm.Identifier, "some_ident"),
+				},
+			},
+		},
+		{
+			name: "Should parse label expression",
+			rd:   strings.NewReader("label:"),
+			want: rasm.Expr{
+				rasm.LabelExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.Identifier, "label"),
+				nil,
+			},
+		},
+		{
+			name: "Should parse EOF",
+			rd:   strings.NewReader(""),
+			want: rasm.Expr{
+				rasm.EofExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.Eof, ""),
+				nil,
+			},
+		},
+		{
+			name: "Should not parse illegal token",
+			rd:   strings.NewReader("\\"),
+			want: rasm.Expr{
+				rasm.IllegalExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.Illegal, "\\"),
+				nil,
+			},
+		},
+		{
+			name: "Should not parse malformed section expression",
+			rd:   strings.NewReader("section :"),
+			want: rasm.Expr{
+				rasm.IllegalExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.Section, "section"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{0, 0}, 0, "expected identifier"),
+					rasm.NewToken(rasm.Position{1, 8}, rasm.Colon, ":"),
+				},
+			},
+		},
+		{
+			name: "Should not parse malformed instruction expression (expect operand)",
+			rd:   strings.NewReader("mov 512,,"),
+			want: rasm.Expr{
+				rasm.IllegalExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{0, 0}, 0, "expected operand or '\\n'"),
+					rasm.NewToken(rasm.Position{1, 4}, rasm.Decimal, "512"),
+					rasm.NewToken(rasm.Position{1, 8}, rasm.Comma, ","),
+				},
+			},
+		},
+		{
+			name: "Should not parse malformed instruction expression (expect delimiter)",
+			rd:   strings.NewReader("mov 512:"),
+			want: rasm.Expr{
+				rasm.IllegalExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{0, 0}, 0, "expected '\\n' or ','"),
+					rasm.NewToken(rasm.Position{1, 4}, rasm.Decimal, "512"),
+					rasm.NewToken(rasm.Position{1, 7}, rasm.Colon, ":"),
+				},
+			},
+		},
+		{
+			name: "Should not parse malformed label expression",
+			rd:   strings.NewReader("label,"),
+			want: rasm.Expr{
+				rasm.IllegalExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.Identifier, "label"),
+				[]rasm.Token{
+					rasm.NewToken(rasm.Position{0, 0}, 0, "expected ':'"),
+					rasm.NewToken(rasm.Position{1, 5}, rasm.Comma, ","),
+				},
+			},
+		},
 	}
-}
-
-func TestSectionParsing(t *testing.T) {
-	p := rasm.NewParser(
-		strings.NewReader("section .text\n\n\n\nSECTION .DATA"),
-	)
-	expectedSectionIdents := []string{".text", ".DATA"}
-
-	for i := 0; i < 2; i++ {
-		expr := p.Next()
-		if expr.Id != rasm.SectionExpr {
-			t.Fatalf("Incorrect parsing detected. Expected section expression")
-		}
-		if expr.Children[0].Raw() != expectedSectionIdents[i] {
-			t.Fatalf(
-				"Incorrect parsing detected. Expected: %q, got: %q",
-				expectedSectionIdents[i],
-				expr.Children[0].Raw(),
-			)
-		}
-	}
-}
-
-func TestInstructionParsing(t *testing.T) {
-	p := rasm.NewParser(
-		strings.NewReader("mov rax, 42\nmov 0xF74182A, 0o6, eip, r15\nmov\n"),
-	)
-	expectedOpAmt := []int{2, 4, 0}
-
-	for i := 0; i < 3; i++ {
-		expr := p.Next()
-		if expr.Id != rasm.InstrExpr {
-			t.Fatalf("Incorrect parsing detected. Expected: InstrExpr(1), got: %d", expr.Id)
-		}
-		if len(expr.Children) != expectedOpAmt[i] {
-			t.Fatalf(
-				"Incorrect parsing detected. Expected: %d operands, got: %d",
-				expectedOpAmt[i],
-				len(expr.Children),
-			)
-		}
-	}
-}
-
-func TestLabelParsing(t *testing.T) {
-	p := rasm.NewParser(
-		strings.NewReader("_start:\n\n\nlabel1:\nlabel._2_.:\n"),
-	)
-	expectedLabelNames := []string{"_start", "label1", "label._2_."}
-
-	for i := 0; i < 3; i++ {
-		expr := p.Next()
-		if expr.Id != rasm.LabelExpr {
-			t.Fatalf("Incorrect parsing detected. Expected: LabelExpr(3), got: %d", expr.Id)
-		}
-		if expr.Root.Raw() != expectedLabelNames[i] {
-			t.Fatalf(
-				"Incorrect parsing detected. Expected: %q, got: %q",
-				expectedLabelNames[i],
-				expr.Root.Raw(),
-			)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := rasm.NewParser(tt.rd)
+			got := p.Next()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Next() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

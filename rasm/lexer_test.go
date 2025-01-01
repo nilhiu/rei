@@ -1,219 +1,131 @@
 package rasm_test
 
 import (
+	"io"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/nilhiu/rei/rasm"
+	"github.com/nilhiu/rei/x86"
 )
 
-func TestIdentifierLexing(t *testing.T) {
-	expected := []string{
-		"mov",
-		"raw",
-		"r1",
-		"r31",
-		"lo_bit",
-		"open.win",
-		"slo_._mo",
-		".text",
-		"_.o",
+func TestLexer_Next(t *testing.T) {
+	pos0 := rasm.Position{1, 0}
+	tests := []struct {
+		name string
+		rd   io.Reader
+		want rasm.Token
+	}{
+		{
+			name: "Should lex random identifier",
+			rd:   strings.NewReader("_lo_._hi_bit"),
+			want: rasm.NewToken(pos0, rasm.Identifier, "_lo_._hi_bit"),
+		},
+		{
+			name: "Should lex x86 mnemonics",
+			rd:   strings.NewReader("mOv"),
+			want: rasm.NewToken(pos0, rasm.TokenId(x86.Mov)|rasm.Instruction, "mOv"),
+		},
+		{
+			name: "Should lex x86 register",
+			rd:   strings.NewReader("bPl"),
+			want: rasm.NewToken(pos0, rasm.TokenId(x86.Bpl)|rasm.Register, "bPl"),
+		},
+		{
+			name: "Should lex decimal numbers",
+			want: rasm.NewToken(pos0, rasm.Decimal, "1234567890"),
+			rd:   strings.NewReader("1234567890"),
+		},
+		{
+			// This test case may change as keeping the beginning '0' is useless
+			name: "Should lex decimal numbers starting with 0",
+			rd:   strings.NewReader("0123456789"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "0123456789"),
+		},
+		{
+			name: "Should lex decimal number zero",
+			rd:   strings.NewReader("0"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "0"),
+		},
+		{
+			name: "Should lex decimal numbers multiple zeros",
+			rd:   strings.NewReader("00000"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "00000"),
+		},
+		{
+			name: "Should lex decimal numbers before letters separately",
+			rd:   strings.NewReader("512hello"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "512"),
+		},
+		{
+			name: "Should lex hexadecimal numbers (x)",
+			rd:   strings.NewReader("0x0123456789AbCdEfGhIjKl"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "0123456789AbCdEf"),
+		},
+		{
+			name: "Should lex hexadecimal numbers (X)",
+			rd:   strings.NewReader("0X0123456789AbCdEfGhIjKl"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "0123456789AbCdEf"),
+		},
+		{
+			name: "Should lex octal numbers (o)",
+			rd:   strings.NewReader("0o0123456789"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "01234567"),
+		},
+		{
+			name: "Should lex octal numbers (O)",
+			rd:   strings.NewReader("0O0123456789"),
+			want: rasm.NewToken(pos0, rasm.Decimal, "01234567"),
+		},
+		{
+			name: "Should lex section keyword",
+			rd:   strings.NewReader("sEcTiOn"),
+			want: rasm.NewToken(pos0, rasm.Section, "sEcTiOn"),
+		},
+		{
+			name: "Should lex ','",
+			rd:   strings.NewReader(","),
+			want: rasm.NewToken(pos0, rasm.Comma, ","),
+		},
+		{
+			name: "Should lex ':'",
+			rd:   strings.NewReader(":"),
+			want: rasm.NewToken(pos0, rasm.Section, ":"),
+		},
+		{
+			name: "Should lex '\\n'",
+			rd:   strings.NewReader("\n"),
+			want: rasm.NewToken(pos0, rasm.Newline, "\\n"),
+		},
+		{
+			name: "Should not lex just the hex prefix",
+			rd:   strings.NewReader("0x"),
+			want: rasm.NewToken(pos0, rasm.Illegal, "hex prefix without logical continuation"),
+		},
+		{
+			name: "Should not lex just the octal prefix",
+			rd:   strings.NewReader("0o"),
+			want: rasm.NewToken(pos0, rasm.Illegal, "octal prefix without logical continuation"),
+		},
+		{
+			name: "Should not lex unknown symbols",
+			rd:   strings.NewReader("\\"),
+			want: rasm.NewToken(pos0, rasm.Illegal, "\\"),
+		},
 	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Raw() != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestDecimalLexing(t *testing.T) {
-	expected := []string{
-		"12345678",
-		"2024",
-		"7",
-		"1",
-		"000000",
-		"389",
-		"471208939810923819716278",
-		"0",
-		"0",
-	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Raw() != expected[i] {
-			t.Fatalf(`Incorrect lexing detected. Expected: %q, got: %q`, expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestHexLexing(t *testing.T) {
-	expected := []string{"2830fa", "000A", "ABCdEf0123456789", "123456789", "AbFEF7510"}
-	lxr := rasm.NewLexer(
-		strings.NewReader("0x" + strings.Join(expected, " 0x")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Raw() != expected[i] || tok.Id() != rasm.Hex {
-			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestIllegalHexLexing(t *testing.T) {
-	expected := []string{"0x", "0xL", "0XX"}
-	expectedId := []rasm.TokenId{
-		rasm.Illegal,
-		rasm.Illegal,
-		rasm.Identifier,
-		rasm.Illegal,
-		rasm.Identifier,
-	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Id() != expectedId[i] {
-			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
-		}
-	}
-}
-
-func TestOctalLexing(t *testing.T) {
-	expected := []string{"273012", "1234", "01234567", "1234567", "12541237"}
-	lxr := rasm.NewLexer(
-		strings.NewReader("0O" + strings.Join(expected, " 0o")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Raw() != expected[i] || tok.Id() != rasm.Octal {
-			t.Fatalf("Incorrect lexing detected. Expected: %q, got: %q", expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestIllegalOctalLexing(t *testing.T) {
-	expected := []string{"0o", "0oL", "0OO"}
-	expectedId := []rasm.TokenId{
-		rasm.Illegal,
-		rasm.Illegal,
-		rasm.Identifier,
-		rasm.Illegal,
-		rasm.Identifier,
-	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Id() != expectedId[i] {
-			t.Fatalf("Illegal lexing not detected. Expected: %q, got: %q", expected[i], tok.Raw())
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := rasm.NewLexer(tt.rd)
+			got := l.Next()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Next() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestIllegalLexing(t *testing.T) {
-	expected := []string{"\\", "{", "}"}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Id() != rasm.Illegal || tok.Raw() != expected[i] {
-			t.Fatalf(`Illegal lexing let through. Expected: %q, got: %q`, expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestGeneralKeywordLexing(t *testing.T) {
-	expected := []string{"section", "sEcTiOn", "SECTION", "sectionnot", "section_", ",", ":"}
-	expectedId := []rasm.TokenId{
-		rasm.Section, rasm.Section, rasm.Section, rasm.Identifier, rasm.Identifier, rasm.Comma,
-		rasm.Colon,
-	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected); i++ {
-		tok := lxr.Next()
-		if tok.Id() != expectedId[i] || tok.Raw() != expected[i] {
-			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestX86KeywordLexing(t *testing.T) {
-	expected := []string{
-		"rax", "rcx", "rdx", "rBx", "rsi", "rDi", "rsp", "rbp", "r9", "r10", "r11", "R12", "r13", "r14",
-		"r15", "eax", "ecx", "edX", "ebx", "esI", "edi", "esp", "ebp", "r9d", "r10d", "r11d", "r12d",
-		"r13D", "r14d", "r15d", "Ax", "Cx", "Dx", "bx", "si", "di", "sp", "bp", "r9W", "r10w", "r11w",
-		"r12w", "r13W", "r14w", "R15w", "al", "cl", "dl", "bL", "sil", "diL", "sPl", "bpl", "r9b",
-		"r10b", "r11b", "r12b", "r13b", "r14B", "r15b", "ah", "Ch", "dh", "bH", "mOv",
-	}
-	lxr := rasm.NewLexer(
-		strings.NewReader(strings.Join(expected, " ")),
-	)
-
-	for i := 0; i < len(expected)-1; i++ {
-		tok := lxr.Next()
-		if tok.Id() != rasm.Register || tok.Raw() != expected[i] {
-			t.Fatalf(`Keyword incorrectly lexed. Expected: %q, got: %q`, expected[i], tok.Raw())
-		}
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Instruction {
-		t.Fatalf(
-			`Keyword incorrectly lexed. Expected: %q, got: %q`,
-			expected[len(expected)-1],
-			tok.Raw(),
-		)
-	}
-
-	if tok := lxr.Next(); tok.Id() != rasm.Eof {
-		t.Fatalf(`End-of-file expected but got valid token. Got: %q`, tok.Raw())
-	}
-}
-
-func TestLexPositioning(t *testing.T) {
+func TestLexerPositioning(t *testing.T) {
 	str := "\nname mov,\n0xAAFF0 0o1234 0 0 000\n12418\n\n\nsection\n    label: random_name\n19370 0"
 	expected := []rasm.Position{
 		{Line: 1, Col: 0},
