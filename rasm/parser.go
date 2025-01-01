@@ -79,7 +79,7 @@ func (p *Parser) parseInstruction() Expr {
 		case Comma:
 			continue
 		default:
-			children = append(children, op)
+			children = append(children, div)
 			return Expr{
 				Id:       IllegalExpr,
 				Root:     p.root,
