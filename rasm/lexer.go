@@ -41,6 +41,10 @@ type Token struct {
 	raw string
 }
 
+func NewToken(pos Position, id TokenId, raw string) Token {
+	return Token{pos, id, raw}
+}
+
 func (t *Token) Pos() Position {
 	return t.pos
 }
