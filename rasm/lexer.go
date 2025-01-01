@@ -146,7 +146,7 @@ func (l *Lexer) popStr() string {
 func (l *Lexer) lexZero() Token {
 	r, isEof := l.read()
 	if isEof {
-		return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
+		return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 2}, id: Decimal, raw: "0"}
 	}
 
 	switch r {
