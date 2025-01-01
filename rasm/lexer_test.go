@@ -61,22 +61,22 @@ func TestLexer_Next(t *testing.T) {
 		{
 			name: "Should lex hexadecimal numbers (x)",
 			rd:   strings.NewReader("0x0123456789AbCdEfGhIjKl"),
-			want: rasm.NewToken(pos0, rasm.Decimal, "0123456789AbCdEf"),
+			want: rasm.NewToken(pos0, rasm.Hex, "0123456789AbCdEf"),
 		},
 		{
 			name: "Should lex hexadecimal numbers (X)",
 			rd:   strings.NewReader("0X0123456789AbCdEfGhIjKl"),
-			want: rasm.NewToken(pos0, rasm.Decimal, "0123456789AbCdEf"),
+			want: rasm.NewToken(pos0, rasm.Hex, "0123456789AbCdEf"),
 		},
 		{
 			name: "Should lex octal numbers (o)",
 			rd:   strings.NewReader("0o0123456789"),
-			want: rasm.NewToken(pos0, rasm.Decimal, "01234567"),
+			want: rasm.NewToken(pos0, rasm.Octal, "01234567"),
 		},
 		{
 			name: "Should lex octal numbers (O)",
 			rd:   strings.NewReader("0O0123456789"),
-			want: rasm.NewToken(pos0, rasm.Decimal, "01234567"),
+			want: rasm.NewToken(pos0, rasm.Octal, "01234567"),
 		},
 		{
 			name: "Should lex section keyword",
@@ -91,10 +91,10 @@ func TestLexer_Next(t *testing.T) {
 		{
 			name: "Should lex ':'",
 			rd:   strings.NewReader(":"),
-			want: rasm.NewToken(pos0, rasm.Section, ":"),
+			want: rasm.NewToken(pos0, rasm.Colon, ":"),
 		},
 		{
-			name: "Should lex '\\n'",
+			name: "Should lex newline",
 			rd:   strings.NewReader("\n"),
 			want: rasm.NewToken(pos0, rasm.Newline, "\\n"),
 		},
