@@ -106,5 +106,5 @@ func (p *Parser) parseLabel() Expr {
 	if colon.Id() != Colon {
 		return Expr{Id: IllegalExpr, Root: p.root, Children: []Token{{raw: "expected ':'"}, colon}}
 	}
-	return Expr{Id: LabelExpr, Root: p.root, Children: []Token{}}
+	return Expr{Id: LabelExpr, Root: p.root, Children: nil}
 }
