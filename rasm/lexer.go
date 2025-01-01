@@ -80,7 +80,7 @@ func (l *Lexer) Next() Token {
 		pos := l.pos
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: l.pos, id: Eof, raw: ""}
+			return Token{pos: pos, id: Eof, raw: ""}
 		}
 
 		switch r {
