@@ -269,9 +269,9 @@ func identTokenId(id string) TokenId {
 		return Section
 	default:
 		if instr := x86.MnemonicSearchMap[ident]; instr != 0 {
-			return TokenId(uint(Instruction) | uint(instr))
+			return Instruction | TokenId(instr)
 		} else if reg := x86.RegisterSearchMap[ident]; reg != 0 {
-			return TokenId(uint(Register) | uint(reg))
+			return Register | TokenId(reg)
 		} else {
 			return Identifier
 		}
