@@ -18,8 +18,23 @@ func TestLexer_Next(t *testing.T) {
 		want rasm.Token
 	}{
 		{
-			name: "Should lex random identifier",
+			name: "Should lex EOF",
+			rd:   strings.NewReader(""),
+			want: rasm.NewToken(pos0, rasm.Eof, ""),
+		},
+		{
+			name: "Should lex spaces",
+			rd:   strings.NewReader("   "),
+			want: rasm.NewToken(rasm.Position{1, 3}, rasm.Eof, ""),
+		},
+		{
+			name: "Should lex random identifier (EOF)",
 			rd:   strings.NewReader("_lo_._hi_bit"),
+			want: rasm.NewToken(pos0, rasm.Identifier, "_lo_._hi_bit"),
+		},
+		{
+			name: "Should lex random identifier",
+			rd:   strings.NewReader("_lo_._hi_bit "),
 			want: rasm.NewToken(pos0, rasm.Identifier, "_lo_._hi_bit"),
 		},
 		{
@@ -31,6 +46,16 @@ func TestLexer_Next(t *testing.T) {
 			name: "Should lex x86 register",
 			rd:   strings.NewReader("bPl"),
 			want: rasm.NewToken(pos0, rasm.TokenId(x86.Bpl)|rasm.Register, "bPl"),
+		},
+		{
+			name: "Should lex decimal zero (EOF)",
+			want: rasm.NewToken(pos0, rasm.Decimal, "0"),
+			rd:   strings.NewReader("0"),
+		},
+		{
+			name: "Should lex decimal zero",
+			want: rasm.NewToken(pos0, rasm.Decimal, "0"),
+			rd:   strings.NewReader("0 "),
 		},
 		{
 			name: "Should lex decimal numbers",
@@ -99,13 +124,23 @@ func TestLexer_Next(t *testing.T) {
 			want: rasm.NewToken(pos0, rasm.Newline, "\\n"),
 		},
 		{
-			name: "Should not lex just the hex prefix",
+			name: "Should not lex just the hex prefix (EOF)",
 			rd:   strings.NewReader("0x"),
 			want: rasm.NewToken(pos0, rasm.Illegal, "hex prefix without logical continuation"),
 		},
 		{
-			name: "Should not lex just the octal prefix",
+			name: "Should not lex just the hex prefix",
+			rd:   strings.NewReader("0x "),
+			want: rasm.NewToken(pos0, rasm.Illegal, "hex prefix without logical continuation"),
+		},
+		{
+			name: "Should not lex just the octal prefix (EOF)",
 			rd:   strings.NewReader("0o"),
+			want: rasm.NewToken(pos0, rasm.Illegal, "octal prefix without logical continuation"),
+		},
+		{
+			name: "Should not lex just the octal prefix",
+			rd:   strings.NewReader("0o "),
 			want: rasm.NewToken(pos0, rasm.Illegal, "octal prefix without logical continuation"),
 		},
 		{
