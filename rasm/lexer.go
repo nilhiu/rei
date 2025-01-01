@@ -174,7 +174,7 @@ func (l *Lexer) lexHex() Token {
 	for {
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: pos, id: Hex, raw: l.popStr()}
+			return Token{pos: pos, id: Illegal, raw: "hex prefix without logical continuation"}
 		}
 
 		switch r {
@@ -201,7 +201,11 @@ func (l *Lexer) lexOctal() Token {
 	for {
 		r, isEof := l.read()
 		if isEof {
-			return Token{pos: pos, id: Octal, raw: l.popStr()}
+			return Token{
+				pos: pos,
+				id:  Illegal,
+				raw: "octal prefix without logical continuation",
+			}
 		}
 
 		switch r {
