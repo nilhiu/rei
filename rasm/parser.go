@@ -72,14 +72,14 @@ func (p *Parser) parseInstruction() Expr {
 			}
 		}
 
-		div := p.lxr.Next()
-		switch div.Id() {
+		delim := p.lxr.Next()
+		switch delim.Id() {
 		case Newline, Eof:
 			return Expr{Id: InstrExpr, Root: p.root, Children: children}
 		case Comma:
 			continue
 		default:
-			children = append(children, div)
+			children = append(children, delim)
 			return Expr{
 				Id:       IllegalExpr,
 				Root:     p.root,
