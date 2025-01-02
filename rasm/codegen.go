@@ -27,7 +27,7 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 	for {
 		expr := cg.p.Next()
 
-		switch expr.Id {
+		switch expr.ID {
 		case LabelExpr:
 			ok := cg.addLabel(expr.Root.Raw())
 			if !ok {
@@ -41,7 +41,7 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 		case SectionExpr:
 			cg.section = expr.Children[0].Raw()
 			continue
-		case EofExpr:
+		case EOFExpr:
 			return nil, cg.section, nil
 		}
 
@@ -73,17 +73,17 @@ func (cg *CodeGen) genInstruction(expr Expr) ([]byte, error) {
 		ops = append(ops, op)
 	}
 
-	return x86.Translate(x86.Mnemonic(expr.Root.SpecId()), ops...)
+	return x86.Translate(x86.Mnemonic(expr.Root.SpecID()), ops...)
 }
 
 func toOperand(t Token) (x86.Operand, error) {
 	// TODO: Add other operands.
-	switch t.Id() {
+	switch t.ID() {
 	case Decimal:
 		i, err := strconv.ParseUint(t.Raw(), 10, 64)
 		return x86.Immediate(i), err
 	case Register:
-		return x86.Register(t.SpecId()), nil
+		return x86.Register(t.SpecID()), nil
 	}
 
 	return nil, errors.New("not supported operand")

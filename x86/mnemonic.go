@@ -5,11 +5,11 @@ type Mnemonic uint
 // Mnemonic constants (Very WIP)
 const (
 	_            = iota
-	Add Mnemonic = iota << 5
-	Mov
+	ADD Mnemonic = iota << 5
+	MOV
 )
 
 var MnemonicSearchMap = map[string]Mnemonic{
-	"add": Add,
-	"mov": Mov,
+	"add": ADD,
+	"mov": MOV,
 }

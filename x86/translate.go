@@ -32,14 +32,14 @@ func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 
 func mnemToFmt(mnem Mnemonic) *opFmt {
 	switch mnem {
-	case Add:
+	case ADD:
 		return newOpFmt().
 			withClass(0).
 			addRI([]byte{0x80}, immFmtNative32).
 			withARegCompressed([]byte{0x04}, immFmtNative32).
 			withByteCompressed([]byte{0x83}).
 			addRR([]byte{0x00}, true)
-	case Mov:
+	case MOV:
 		return newOpFmt().
 			withClass(opFmtClassCompactReg).
 			addRI([]byte{0xB0}, immFmtNative).

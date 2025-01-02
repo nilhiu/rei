@@ -32,7 +32,7 @@ func TestParser_Next(t *testing.T) {
 			rd:   strings.NewReader("add"),
 			want: rasm.Expr{
 				rasm.InstrExpr,
-				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Add)|rasm.Instruction, "add"),
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenID(x86.ADD)|rasm.Instruction, "add"),
 				[]rasm.Token{},
 			},
 		},
@@ -41,9 +41,9 @@ func TestParser_Next(t *testing.T) {
 			rd:   strings.NewReader("mov eax, 512, 0xff, 0o777, some_ident"),
 			want: rasm.Expr{
 				rasm.InstrExpr,
-				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenID(x86.MOV)|rasm.Instruction, "mov"),
 				[]rasm.Token{
-					rasm.NewToken(rasm.Position{1, 4}, rasm.TokenId(x86.Eax)|rasm.Register, "eax"),
+					rasm.NewToken(rasm.Position{1, 4}, rasm.TokenID(x86.EAX)|rasm.Register, "eax"),
 					rasm.NewToken(rasm.Position{1, 9}, rasm.Decimal, "512"),
 					rasm.NewToken(rasm.Position{1, 14}, rasm.Hex, "ff"),
 					rasm.NewToken(rasm.Position{1, 20}, rasm.Octal, "777"),
@@ -64,8 +64,8 @@ func TestParser_Next(t *testing.T) {
 			name: "Should parse EOF",
 			rd:   strings.NewReader(""),
 			want: rasm.Expr{
-				rasm.EofExpr,
-				rasm.NewToken(rasm.Position{1, 0}, rasm.Eof, ""),
+				rasm.EOFExpr,
+				rasm.NewToken(rasm.Position{1, 0}, rasm.EOF, ""),
 				nil,
 			},
 		},
@@ -95,7 +95,7 @@ func TestParser_Next(t *testing.T) {
 			rd:   strings.NewReader("mov 512,,"),
 			want: rasm.Expr{
 				rasm.IllegalExpr,
-				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenID(x86.MOV)|rasm.Instruction, "mov"),
 				[]rasm.Token{
 					rasm.NewToken(rasm.Position{0, 0}, 0, "expected operand or '\\n'"),
 					rasm.NewToken(rasm.Position{1, 4}, rasm.Decimal, "512"),
@@ -108,7 +108,7 @@ func TestParser_Next(t *testing.T) {
 			rd:   strings.NewReader("mov 512:"),
 			want: rasm.Expr{
 				rasm.IllegalExpr,
-				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenId(x86.Mov)|rasm.Instruction, "mov"),
+				rasm.NewToken(rasm.Position{1, 0}, rasm.TokenID(x86.MOV)|rasm.Instruction, "mov"),
 				[]rasm.Token{
 					rasm.NewToken(rasm.Position{0, 0}, 0, "expected '\\n' or ','"),
 					rasm.NewToken(rasm.Position{1, 4}, rasm.Decimal, "512"),

@@ -20,12 +20,12 @@ func TestLexer_Next(t *testing.T) {
 		{
 			name: "Should lex EOF",
 			rd:   strings.NewReader(""),
-			want: rasm.NewToken(pos0, rasm.Eof, ""),
+			want: rasm.NewToken(pos0, rasm.EOF, ""),
 		},
 		{
 			name: "Should lex spaces",
 			rd:   strings.NewReader("   "),
-			want: rasm.NewToken(rasm.Position{1, 3}, rasm.Eof, ""),
+			want: rasm.NewToken(rasm.Position{1, 3}, rasm.EOF, ""),
 		},
 		{
 			name: "Should lex random identifier (EOF)",
@@ -40,12 +40,12 @@ func TestLexer_Next(t *testing.T) {
 		{
 			name: "Should lex x86 mnemonics",
 			rd:   strings.NewReader("mOv"),
-			want: rasm.NewToken(pos0, rasm.TokenId(x86.Mov)|rasm.Instruction, "mOv"),
+			want: rasm.NewToken(pos0, rasm.TokenID(x86.MOV)|rasm.Instruction, "mOv"),
 		},
 		{
 			name: "Should lex x86 register",
 			rd:   strings.NewReader("bPl"),
-			want: rasm.NewToken(pos0, rasm.TokenId(x86.Bpl)|rasm.Register, "bPl"),
+			want: rasm.NewToken(pos0, rasm.TokenID(x86.BPL)|rasm.Register, "bPl"),
 		},
 		{
 			name: "Should lex decimal zero (EOF)",

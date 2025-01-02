@@ -14,10 +14,10 @@ type Position struct {
 	Col  uint
 }
 
-type TokenId uint
+type TokenID uint
 
 const (
-	Eof TokenId = iota
+	EOF TokenID = iota
 	Illegal
 	Instruction
 	Register
@@ -37,11 +37,11 @@ const (
 // bits contains the instruction/register identifiers.
 type Token struct {
 	pos Position
-	id  TokenId
+	id  TokenID
 	raw string
 }
 
-func NewToken(pos Position, id TokenId, raw string) Token {
+func NewToken(pos Position, id TokenID, raw string) Token {
 	return Token{pos, id, raw}
 }
 
@@ -49,11 +49,11 @@ func (t *Token) Pos() Position {
 	return t.pos
 }
 
-func (t *Token) Id() TokenId {
+func (t *Token) ID() TokenID {
 	return t.id & 0x1f
 }
 
-func (t *Token) SpecId() uint {
+func (t *Token) SpecID() uint {
 	return (uint(t.id) >> 5) << 5
 }
 
@@ -78,9 +78,9 @@ func NewLexer(rd io.Reader) *Lexer {
 func (l *Lexer) Next() Token {
 	for {
 		pos := l.pos
-		r, isEof := l.read()
-		if isEof {
-			return Token{pos: pos, id: Eof, raw: ""}
+		r, isEOF := l.read()
+		if isEOF {
+			return Token{pos: pos, id: EOF, raw: ""}
 		}
 
 		switch r {
@@ -144,8 +144,8 @@ func (l *Lexer) popStr() string {
 }
 
 func (l *Lexer) lexZero() Token {
-	r, isEof := l.read()
-	if isEof {
+	r, isEOF := l.read()
+	if isEOF {
 		return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 2}, id: Decimal, raw: "0"}
 	}
 
@@ -172,8 +172,8 @@ func (l *Lexer) lexHex() Token {
 	pos := l.pos
 	pos.Col -= 2
 	for {
-		r, isEof := l.read()
-		if isEof {
+		r, isEOF := l.read()
+		if isEOF {
 			return Token{pos: pos, id: Illegal, raw: "hex prefix without logical continuation"}
 		}
 
@@ -199,8 +199,8 @@ func (l *Lexer) lexOctal() Token {
 	pos := l.pos
 	pos.Col -= 2
 	for {
-		r, isEof := l.read()
-		if isEof {
+		r, isEOF := l.read()
+		if isEOF {
 			return Token{
 				pos: pos,
 				id:  Illegal,
@@ -229,8 +229,8 @@ func (l *Lexer) lexOctal() Token {
 func (l *Lexer) lexDecimal() Token {
 	pos := l.pos
 	for {
-		r, isEof := l.read()
-		if isEof {
+		r, isEOF := l.read()
+		if isEOF {
 			return Token{pos: pos, id: Decimal, raw: l.popStr()}
 		}
 
@@ -246,10 +246,10 @@ func (l *Lexer) lexDecimal() Token {
 func (l *Lexer) lexIdentifier() Token {
 	pos := l.pos
 	for {
-		r, isEof := l.read()
-		if isEof {
+		r, isEOF := l.read()
+		if isEOF {
 			raw := l.popStr()
-			return Token{pos: pos, id: identTokenId(raw), raw: raw}
+			return Token{pos: pos, id: identTokenID(raw), raw: raw}
 		}
 
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.' {
@@ -257,21 +257,21 @@ func (l *Lexer) lexIdentifier() Token {
 		} else {
 			l.unread()
 			raw := l.popStr()
-			return Token{pos: pos, id: identTokenId(raw), raw: raw}
+			return Token{pos: pos, id: identTokenID(raw), raw: raw}
 		}
 	}
 }
 
-func identTokenId(id string) TokenId {
+func identTokenID(id string) TokenID {
 	ident := strings.ToLower(id)
 	switch ident {
 	case "section":
 		return Section
 	default:
 		if instr := x86.MnemonicSearchMap[ident]; instr != 0 {
-			return Instruction | TokenId(instr)
+			return Instruction | TokenID(instr)
 		} else if reg := x86.RegisterSearchMap[ident]; reg != 0 {
-			return Register | TokenId(reg)
+			return Register | TokenID(reg)
 		} else {
 			return Identifier
 		}
