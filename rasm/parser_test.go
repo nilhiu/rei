@@ -132,6 +132,7 @@ func TestParser_Next(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := rasm.NewParser(tt.rd)
+
 			got := p.Next()
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Next() = %v, want %v", got, tt.want)

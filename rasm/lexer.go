@@ -78,6 +78,7 @@ func NewLexer(rd io.Reader) *Lexer {
 func (l *Lexer) Next() Token {
 	for {
 		pos := l.pos
+
 		r, isEOF := l.read()
 		if isEOF {
 			return Token{pos: pos, id: EOF, raw: ""}
@@ -93,15 +94,18 @@ func (l *Lexer) Next() Token {
 		case '\n':
 			l.pos.Line++
 			l.pos.Col = 0
+
 			return Token{pos: pos, id: Newline, raw: "\\n"}
 		default:
 			if unicode.IsSpace(r) {
 				continue
 			} else if unicode.IsDigit(r) {
 				l.unread()
+
 				return l.lexDecimal()
 			} else if unicode.IsLetter(r) || r == '_' || r == '.' {
 				l.unread()
+
 				return l.lexIdentifier()
 			}
 
@@ -114,16 +118,19 @@ func (l *Lexer) unread() {
 	if err := l.rd.UnreadRune(); err != nil {
 		panic(err)
 	}
+
 	l.pos.Col--
 }
 
 func (l *Lexer) read() (rune, bool) {
 	l.pos.Col++
+
 	r, _, err := l.rd.ReadRune()
 	if err != nil {
 		if err == io.EOF {
 			return 0, true
 		}
+
 		panic(err)
 	}
 
@@ -140,6 +147,7 @@ func (l *Lexer) writeStr(r rune) {
 func (l *Lexer) popStr() string {
 	str := l.sb.String()
 	l.sb.Reset()
+
 	return str
 }
 
@@ -160,9 +168,11 @@ func (l *Lexer) lexZero() Token {
 			tok := l.lexDecimal()
 			tok.raw = string('0') + tok.raw
 			tok.pos.Col--
+
 			return tok
 		} else {
 			l.unread()
+
 			return Token{pos: Position{Line: l.pos.Line, Col: l.pos.Col - 1}, id: Decimal, raw: "0"}
 		}
 	}
@@ -171,6 +181,7 @@ func (l *Lexer) lexZero() Token {
 func (l *Lexer) lexHex() Token {
 	pos := l.pos
 	pos.Col -= 2
+
 	for {
 		r, isEOF := l.read()
 		if isEOF {
@@ -185,10 +196,12 @@ func (l *Lexer) lexHex() Token {
 				l.writeStr(r)
 			} else {
 				l.unread()
+
 				raw := l.popStr()
 				if raw == "" {
 					return Token{pos: pos, id: Illegal, raw: "hex prefix without logical continuation"}
 				}
+
 				return Token{pos: pos, id: Hex, raw: raw}
 			}
 		}
@@ -198,6 +211,7 @@ func (l *Lexer) lexHex() Token {
 func (l *Lexer) lexOctal() Token {
 	pos := l.pos
 	pos.Col -= 2
+
 	for {
 		r, isEOF := l.read()
 		if isEOF {
@@ -213,6 +227,7 @@ func (l *Lexer) lexOctal() Token {
 			l.writeStr(r)
 		default:
 			l.unread()
+
 			raw := l.popStr()
 			if raw == "" {
 				return Token{
@@ -221,6 +236,7 @@ func (l *Lexer) lexOctal() Token {
 					raw: "octal prefix without logical continuation",
 				}
 			}
+
 			return Token{pos: pos, id: Octal, raw: raw}
 		}
 	}
@@ -228,6 +244,7 @@ func (l *Lexer) lexOctal() Token {
 
 func (l *Lexer) lexDecimal() Token {
 	pos := l.pos
+
 	for {
 		r, isEOF := l.read()
 		if isEOF {
@@ -245,6 +262,7 @@ func (l *Lexer) lexDecimal() Token {
 
 func (l *Lexer) lexIdentifier() Token {
 	pos := l.pos
+
 	for {
 		r, isEOF := l.read()
 		if isEOF {

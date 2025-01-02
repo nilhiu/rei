@@ -78,6 +78,7 @@ func TestCodeGen_Next(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cg := rasm.NewCodeGen(tt.rd)
+
 			got, got2, gotErr := cg.Next()
 			if gotErr != nil {
 				if !tt.wantErr {
@@ -85,15 +86,19 @@ func TestCodeGen_Next(t *testing.T) {
 				}
 				return
 			}
+
 			if tt.wantErr {
 				t.Fatal("Next() succeeded unexpectedly")
 			}
+
 			if !reflect.DeepEqual(tt.labels, cg.Labels()) {
 				t.Errorf("cg.Labels() = %v, want %v", cg.Labels(), tt.labels)
 			}
+
 			if !slices.Equal(got, tt.want) {
 				t.Errorf("Next() = %v, want %v", got, tt.want)
 			}
+
 			if got2 != tt.want2 {
 				t.Errorf("Next() = %v, want %v", got2, tt.want2)
 			}
@@ -128,8 +133,8 @@ func TestCodeGen(t *testing.T) {
 		0xbb, 0x00, 0x00, 0x00, 0x00,
 	}
 	cg := rasm.NewCodeGen(strings.NewReader(prog))
-
 	gotCode := []byte{}
+
 	for _, wantSect := range wantSects {
 		bytes, gotSect, err := cg.Next()
 		if err != nil {

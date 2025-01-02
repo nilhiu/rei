@@ -21,9 +21,9 @@ const (
 )
 
 var (
-	immFmtNative   immFmt = immFmt{8, 16, 32, 64}
-	immFmtNative32 immFmt = immFmt{8, 16, 32, 32}
-	immFmtByte     immFmt = immFmt{8, 8, 8, 8}
+	immFmtNative   = immFmt{8, 16, 32, 64}
+	immFmtNative32 = immFmt{8, 16, 32, 32}
+	immFmtByte     = immFmt{8, 8, 8, 8}
 )
 
 func newOpFmt() *opFmt {
@@ -32,24 +32,28 @@ func newOpFmt() *opFmt {
 
 func (o *opFmt) withClass(class byte) *opFmt {
 	o.class = class
+
 	return o
 }
 
 func (o *opFmt) addRI(base []byte, immFmt immFmt) *opFmt {
 	o.operands = append(o.operands, []OpType{OpRegister, OpImmediate})
 	o.translates = append(o.translates, gRI(base, o.class, immFmt))
+
 	return o
 }
 
 func (o *opFmt) addRR(base []byte, mustSameSize bool) *opFmt {
 	o.operands = append(o.operands, []OpType{OpRegister, OpRegister})
 	o.translates = append(o.translates, gRR(base, mustSameSize))
+
 	return o
 }
 
 func (o *opFmt) addRA(base []byte) *opFmt {
 	o.operands = append(o.operands, []OpType{OpRegister, OpAddress})
 	o.translates = append(o.translates, gRA(base))
+
 	return o
 }
 
@@ -59,6 +63,7 @@ func (o *opFmt) withARegCompressed(base []byte, immFmt immFmt) *opFmt {
 		cRI(base, immFmt),
 		o.translates[len(o.translates)-1],
 	)
+
 	return o
 }
 
@@ -68,6 +73,7 @@ func (o *opFmt) withByteCompressed(base []byte) *opFmt {
 		gRI(base, o.class|opFmtClassNotChange, immFmtByte),
 		o.translates[len(o.translates)-1],
 	)
+
 	return o
 }
 

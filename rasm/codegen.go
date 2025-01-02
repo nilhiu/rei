@@ -33,13 +33,16 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 			if !ok {
 				return nil, cg.section, errors.New("label already exists")
 			}
+
 			continue
 		case InstrExpr:
 			bytes, err := cg.genInstruction(expr)
 			cg.pos += uint(len(bytes))
+
 			return bytes, cg.section, err
 		case SectionExpr:
 			cg.section = expr.Children[0].Raw()
+
 			continue
 		case EOFExpr:
 			return nil, cg.section, nil
@@ -60,16 +63,19 @@ func (cg *CodeGen) addLabel(label string) bool {
 	}
 
 	cg.labels[label] = cg.pos
+
 	return true
 }
 
 func (cg *CodeGen) genInstruction(expr Expr) ([]byte, error) {
 	ops := []x86.Operand{}
+
 	for _, t := range expr.Children {
 		op, err := toOperand(t)
 		if err != nil {
 			return nil, err
 		}
+
 		ops = append(ops, op)
 	}
 
@@ -81,6 +87,7 @@ func toOperand(t Token) (x86.Operand, error) {
 	switch t.ID() {
 	case Decimal:
 		i, err := strconv.ParseUint(t.Raw(), 10, 64)
+
 		return x86.Immediate(i), err
 	case Register:
 		return x86.Register(t.SpecID()), nil

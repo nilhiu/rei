@@ -150,11 +150,14 @@ func TestTranslate(t *testing.T) {
 				if !tt.wantErr {
 					t.Errorf("Translate() failed: %v", gotErr)
 				}
+
 				return
 			}
+
 			if tt.wantErr {
 				t.Fatal("Translate() succeeded unexpectedly")
 			}
+
 			if !slices.Equal(got, tt.want) {
 				t.Errorf("Translate() = %v, want %v", got, tt.want)
 			}

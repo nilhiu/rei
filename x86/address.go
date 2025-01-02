@@ -14,7 +14,8 @@ func (a Address) EncodeSib() byte {
 		return 0x25
 	}
 
-	var scale byte = 0
+	var scale byte
+
 	switch a.Scale {
 	case 1:
 		scale = 0b00
@@ -25,6 +26,7 @@ func (a Address) EncodeSib() byte {
 	case 8:
 		scale = 0b11
 	}
+
 	return (scale << 6) | (a.Index.EncodeByte() << 3) | a.Base.EncodeByte()
 }
 
@@ -33,9 +35,9 @@ func (a Address) mod() byte {
 		return 0b00
 	} else if a.Displacement <= 0x7F {
 		return 0b01
-	} else {
-		return 0b10
 	}
+
+	return 0b10
 }
 
 func (a Address) disp() []byte {
@@ -45,6 +47,7 @@ func (a Address) disp() []byte {
 
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, a.Displacement)
+
 	return b
 }
 

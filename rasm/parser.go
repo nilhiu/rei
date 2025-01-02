@@ -56,6 +56,7 @@ func (p *Parser) Next() Expr {
 
 func (p *Parser) parseInstruction() Expr {
 	children := []Token{}
+
 	for {
 		op := p.lxr.Next()
 		switch op.ID() {

@@ -10,15 +10,18 @@ func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 	if fmt == nil {
 		return nil, errors.New("unknown mnemonic encountered")
 	}
-	var opTypes []OpType
+
+	opTypes := []OpType{}
 	for _, op := range ops {
 		opTypes = append(opTypes, op.Type())
 	}
 
 	ix := ^uint(0)
+
 	for i, typ := range fmt.operands {
 		if slices.Compare(typ, opTypes) == 0 {
 			ix = uint(i)
+
 			break
 		}
 	}
@@ -46,5 +49,6 @@ func mnemToFmt(mnem Mnemonic) *opFmt {
 			addRR([]byte{0x88}, true).
 			addRA([]byte{0x8A})
 	}
+
 	return nil
 }

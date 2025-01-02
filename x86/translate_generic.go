@@ -10,6 +10,7 @@ func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateF
 		if pred(ops) {
 			return then(ops)
 		}
+
 		return otherwise(ops)
 	}
 }
@@ -64,6 +65,7 @@ func genericRegReg(
 	}
 
 	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte(), 0b11)
+
 	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
@@ -87,6 +89,7 @@ func genericRegAddr(
 		opcode[len(opcode)-1] = (opcode[len(opcode)-1] & 0b11111000) | 0b100
 		opcode = append(opcode, addr.EncodeSib())
 	}
+
 	if addr.Displacement != 0 {
 		opcode = append(opcode, addr.disp()...)
 	} else if addr.isNil() { // HACK: Will be used for reallocation table. May change.
@@ -114,10 +117,11 @@ func genericRegNoPrefix(base []byte, reg Register, class byte, mod byte) []byte 
 
 	if class == opFmtClassCompactReg {
 		opcode[len(opcode)-1] += reg.EncodeByte()
+
 		return opcode
-	} else {
-		return append(opcode, encodeModRM(mod, class&0b111, reg.EncodeByte()))
 	}
+
+	return append(opcode, encodeModRM(mod, class&0b111, reg.EncodeByte()))
 }
 
 func compressedRegImm(
@@ -141,23 +145,29 @@ func compressedRegImm(
 
 func prefixRR(reg1 Register, reg2 Register) []byte {
 	prefix := []byte{}
+
 	if reg1.Size() == 16 || reg2.Size() == 16 {
 		prefix = []byte{0x66}
 	}
+
 	if reg1.IsRex() || reg2.IsRex() {
 		prefix = append(prefix, encodeRexRR(reg1, reg2))
 	}
+
 	return prefix
 }
 
 func prefixR(reg Register) []byte {
 	prefix := []byte{}
+
 	if reg.Size() == 16 {
 		prefix = []byte{0x66}
 	}
+
 	if reg.IsRex() {
 		prefix = append(prefix, encodeRexR(reg))
 	}
+
 	return prefix
 }
 
@@ -188,14 +198,18 @@ func encodeRexR(reg Register) byte {
 
 func encodeRexRR(reg1 Register, reg2 Register) byte {
 	var rex byte = 0x40
+
 	if reg1.IsRexB() {
 		rex |= 0x01
 	}
+
 	if reg2.IsRexB() {
 		rex |= 0x04
 	}
+
 	if reg1.Size() == 64 {
 		rex |= 0x08
 	}
+
 	return rex
 }
