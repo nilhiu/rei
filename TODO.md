@@ -1,13 +1,19 @@
 # TODOs For a Working Assembler
 
-Currently completed: 5%
+Currently completed: 31%
 
 - [ ] Implement memory pointers in parser and translation. (5%)
 - [X] Connect the parser and translation layers. (5%)
 - [ ] Add ELF object file support. (50%)
+  - [X] Outputs correct ELF objects. (25%)
+  - [ ] Add support for symbols. (25%)
 - [ ] Support for the original 8086/8088 instructions. (40%)
   - [ ] ADC
   - [ ] ADD
+    - [X] I encoding
+    - [X] MI encoding
+    - [X] MR encoding
+    - [ ] RM encoding
   - [ ] AND
   - [ ] CALL
   - [ ] CBW
@@ -72,6 +78,12 @@ Currently completed: 5%
     - [ ] LOOPNZ
     - [ ] LOOPZ
   - [ ] MOV
+    - [X] MR encoding
+    - [X] RM encoding
+    - [ ] FD encoding
+    - [ ] TD encoding
+    - [X] OI encoding
+    - [ ] MI encoding
   - [ ] MOV (control registers)
   - [ ] MOV (debug registers)
   - [ ] MOVSB
