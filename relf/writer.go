@@ -16,6 +16,7 @@ const (
 type Writer struct {
 	header   elf.Header64
 	sections []elf.Section64
+	shndx    map[string]uint16
 	code     bytes.Buffer
 	shstrtab strings.Builder
 	output   io.Writer
@@ -63,6 +64,7 @@ func NewWriter(hdr Header64, writer io.Writer) *Writer {
 			Shentsize: Section64Size,
 		},
 		sections: []elf.Section64{{}},
+		shndx:    map[string]uint16{"": 0},
 		shstrtab: strings.Builder{},
 		output:   writer,
 	}
@@ -88,6 +90,7 @@ func (w *Writer) WriteSection(sect Section64) error {
 		Entsize:   sect.Entsize,
 	})
 
+	w.shndx[sect.Name] = w.header.Shnum
 	w.header.Shnum++
 
 	if _, err := w.code.Write(sect.Code); err != nil {
