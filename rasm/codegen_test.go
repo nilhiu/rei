@@ -14,7 +14,7 @@ func TestCodeGen_Next(t *testing.T) {
 	tests := []struct {
 		name    string
 		rd      io.Reader
-		labels  map[string]uint
+		labels  map[string]rasm.LabelInfo
 		want    []byte
 		want2   string
 		wantErr bool
@@ -22,7 +22,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:   "Generating code for a simple instruction",
 			rd:     strings.NewReader("mov rax, 50123"),
-			labels: map[string]uint{},
+			labels: map[string]rasm.LabelInfo{},
 			want: []byte{
 				0x48, 0xB8, 0xCB, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -32,7 +32,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:   "Generating code for the correct section",
 			rd:     strings.NewReader("section .bss\nsection .text\nsection .data\nmov rax, 50123"),
-			labels: map[string]uint{},
+			labels: map[string]rasm.LabelInfo{},
 			want: []byte{
 				0x48, 0xB8, 0xCB, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -42,7 +42,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:   "Keeps track of labels",
 			rd:     strings.NewReader("section .bss\nlabel:\nmov rax, 50123"),
-			labels: map[string]uint{"label": 0},
+			labels: map[string]rasm.LabelInfo{"label": {".bss", 0}},
 			want: []byte{
 				0x48, 0xB8, 0xCB, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
@@ -52,7 +52,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:    "EOF should give nil slice without error",
 			rd:      strings.NewReader(""),
-			labels:  map[string]uint{},
+			labels:  map[string]rasm.LabelInfo{},
 			want:    nil,
 			want2:   ".text",
 			wantErr: false,
@@ -60,7 +60,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:    "Illegal expression should give an error",
 			rd:      strings.NewReader("just_identifier_error"),
-			labels:  map[string]uint{},
+			labels:  map[string]rasm.LabelInfo{},
 			want:    nil,
 			want2:   ".text",
 			wantErr: true,
@@ -68,7 +68,7 @@ func TestCodeGen_Next(t *testing.T) {
 		{
 			name:    "Label redefinition should give an error",
 			rd:      strings.NewReader("label:\nlabel:\n"),
-			labels:  map[string]uint{"label": 0},
+			labels:  map[string]rasm.LabelInfo{"label": {".text", 0}},
 			want:    nil,
 			want2:   ".text",
 			wantErr: true,
@@ -120,10 +120,10 @@ func TestCodeGen(t *testing.T) {
     mov eax, 60
     mov ebx, 0`
 	wantSects := []string{".text", ".data", ".bss", ".text", ".text"}
-	wantLabels := map[string]uint{
-		"mov_code": 5,
-		"add_code": 10,
-		"_start":   12,
+	wantLabels := map[string]rasm.LabelInfo{
+		"mov_code": {".data", 0},
+		"add_code": {".bss", 0},
+		"_start":   {".text", 5},
 	}
 	wantCode := []byte{
 		0xbb, 0x01, 0x00, 0x00, 0x00,

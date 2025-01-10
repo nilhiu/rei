@@ -11,8 +11,13 @@ import (
 type CodeGen struct {
 	p       *Parser
 	section string
-	pos     uint
-	labels  map[string]uint
+	sectPos map[string]uint64
+	labels  map[string]LabelInfo
+}
+
+type LabelInfo struct {
+	Section string
+	Offset  uint64
 }
 
 func NewCodeGen(rd io.Reader) *CodeGen {
@@ -20,7 +25,12 @@ func NewCodeGen(rd io.Reader) *CodeGen {
 }
 
 func NewCodeGenParser(p *Parser) *CodeGen {
-	return &CodeGen{p, ".text", 0, map[string]uint{}}
+	return &CodeGen{
+		p:       p,
+		section: ".text",
+		sectPos: map[string]uint64{},
+		labels:  map[string]LabelInfo{},
+	}
 }
 
 func (cg *CodeGen) Next() ([]byte, string, error) {
@@ -37,7 +47,7 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 			continue
 		case InstrExpr:
 			bytes, err := cg.genInstruction(expr)
-			cg.pos += uint(len(bytes))
+			cg.addCurrentSectOff(uint64(len(bytes)))
 
 			return bytes, cg.section, err
 		case SectionExpr:
@@ -52,7 +62,7 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 	}
 }
 
-func (cg *CodeGen) Labels() map[string]uint {
+func (cg *CodeGen) Labels() map[string]LabelInfo {
 	return cg.labels
 }
 
@@ -62,7 +72,10 @@ func (cg *CodeGen) addLabel(label string) bool {
 		return false
 	}
 
-	cg.labels[label] = cg.pos
+	cg.labels[label] = LabelInfo{
+		Section: cg.section,
+		Offset:  cg.getCurrentSectOff(),
+	}
 
 	return true
 }
@@ -80,6 +93,14 @@ func (cg *CodeGen) genInstruction(expr Expr) ([]byte, error) {
 	}
 
 	return x86.Translate(x86.Mnemonic(expr.Root.SpecID()), ops...)
+}
+
+func (cg *CodeGen) addCurrentSectOff(off uint64) {
+	cg.sectPos[cg.section] += off
+}
+
+func (cg CodeGen) getCurrentSectOff() uint64 {
+	return cg.sectPos[cg.section]
 }
 
 func toOperand(t Token) (x86.Operand, error) {
