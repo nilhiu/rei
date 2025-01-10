@@ -5,7 +5,7 @@ import (
 	"debug/elf"
 	"testing"
 
-	relf "github.com/nilhiu/rei/relf"
+	"github.com/nilhiu/rei/relf"
 )
 
 func TestWriterCorrectness(t *testing.T) {
