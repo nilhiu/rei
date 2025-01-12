@@ -56,7 +56,7 @@ func main() {
 
 			var ok bool
 			if isBinOut {
-				ok = assembleFileTo(input, output)
+				ok = assembleBinary(input, output)
 			} else {
 				ok = assembleELF(input, output)
 			}
@@ -76,7 +76,7 @@ func main() {
 	}
 }
 
-func assembleFileTo(input string, output string) bool {
+func assembleBinary(input string, output string) bool {
 	fin, err := os.Open(input)
 	if err != nil {
 		panic(err)
