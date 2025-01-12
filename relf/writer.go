@@ -56,7 +56,7 @@ type Symbol64 struct {
 	Value uint64
 }
 
-func NewWriter(filename string, hdr Header64, writer io.Writer) *Writer {
+func New(filename string, hdr Header64, writer io.Writer) *Writer {
 	w := Writer{
 		header: elf.Header64{
 			Ident: [elf.EI_NIDENT]byte{
