@@ -46,7 +46,7 @@ func main() {
 			if cmd.NArg() > 0 {
 				input = cmd.Args().Get(0)
 			} else {
-				printErr("The Instructioneer wasn't given a file to assemble.")
+				printErr("the Instructioneer wasn't given a file to assemble.")
 				cli.ShowAppHelpAndExit(cmd, 2)
 			}
 
