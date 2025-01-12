@@ -138,6 +138,12 @@ func (w *Writer) WriteSection(sect Section64) error {
 		return err
 	}
 
+	pad := int(sect.Addralign) - (len(sect.Code) % int(sect.Addralign))
+	w.code.Grow(pad)
+	for i := pad; i > 0; i-- {
+		w.code.WriteByte(0)
+	}
+
 	return writeNullStr(&w.shstrtab, sect.Name)
 }
 
