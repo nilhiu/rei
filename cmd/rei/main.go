@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/nilhiu/rei/rasm"
@@ -31,7 +33,7 @@ func main() {
 				Name:    "output",
 				Aliases: []string{"o"},
 				Value:   "",
-				Usage:   "specifies the output `FILE` (defaults to {input_file}.bin)",
+				Usage:   "specifies the output `FILE`",
 			},
 			&cli.BoolFlag{
 				Name:  "binary",
@@ -51,7 +53,13 @@ func main() {
 			isBinOut := cmd.Bool("binary")
 			output := cmd.String("output")
 			if output == "" {
-				output = input + ".bin"
+				var ext string
+				if isBinOut {
+					ext = ".bin"
+				} else {
+					ext = ".o"
+				}
+				output = strings.TrimSuffix(input, filepath.Ext(input)) + ext
 			}
 
 			var ok bool
