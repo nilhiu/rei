@@ -111,6 +111,17 @@ func (w *Writer) WriteSection(sect Section64) error {
 	})
 
 	w.shndx[sect.Name] = w.header.Shnum
+
+	err := w.WriteSymbol(Symbol64{
+		Type:  elf.STT_SECTION,
+		Bind:  elf.STB_LOCAL,
+		Shndx: w.header.Shnum,
+	})
+	if err != nil {
+		return err
+	}
+	w.symbols[len(w.symbols)-1].Name = 0
+
 	w.header.Shnum++
 
 	if _, err := w.code.Write(sect.Code); err != nil {
