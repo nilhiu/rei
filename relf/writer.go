@@ -213,6 +213,7 @@ func (w *Writer) writeShstrtab() error {
 	if err := w.writeStringTable(".shstrtab", &w.shstrtab); err != nil {
 		return err
 	}
+	w.sections[len(w.sections)-1].Size += 1
 
 	return w.code.WriteByte(0)
 }
