@@ -138,11 +138,7 @@ func (w *Writer) WriteSection(sect Section64) error {
 		return err
 	}
 
-	if _, err := w.shstrtab.WriteString(sect.Name); err != nil {
-		return err
-	}
-
-	return w.shstrtab.WriteByte(0)
+	return writeNullStr(&w.shstrtab, sect.Name)
 }
 
 func (w *Writer) WriteSymbol(symb Symbol64) error {
@@ -154,11 +150,7 @@ func (w *Writer) WriteSymbol(symb Symbol64) error {
 		Size:  0,
 	})
 
-	if _, err := w.strtab.WriteString(symb.Name); err != nil {
-		return err
-	}
-
-	return w.strtab.WriteByte(0)
+	return writeNullStr(&w.strtab, symb.Name)
 }
 
 func (w *Writer) Flush() error {
@@ -166,7 +158,7 @@ func (w *Writer) Flush() error {
 		return err
 	}
 
-	if err := w.writeStrtab(); err != nil {
+	if err := w.writeStringTable(".strtab", &w.strtab); err != nil {
 		return err
 	}
 
@@ -176,7 +168,7 @@ func (w *Writer) Flush() error {
 
 	w.finalizeSectionOffsets()
 
-	if err := w.writeHeader(); err != nil {
+	if err := binary.Write(w.output, binary.LittleEndian, w.header); err != nil {
 		return err
 	}
 
@@ -184,7 +176,8 @@ func (w *Writer) Flush() error {
 		return err
 	}
 
-	return w.writeCode()
+	_, err := w.code.WriteTo(w.output)
+	return err
 }
 
 func (w *Writer) makeSymbolTable() error {
@@ -192,7 +185,7 @@ func (w *Writer) makeSymbolTable() error {
 		return int(a.Info>>4) - int(b.Info>>4)
 	})
 
-	buf := bytes.NewBuffer([]byte{})
+	buf := bytes.NewBuffer(make([]byte, 0, Symbol64Size*len(w.symbols)))
 	var firstGlobalIx uint32
 	for i, symb := range w.symbols {
 		if firstGlobalIx == 0 && (symb.Info>>4) == uint8(elf.STB_GLOBAL) {
@@ -215,54 +208,30 @@ func (w *Writer) makeSymbolTable() error {
 	})
 }
 
-func (w *Writer) writeSectionStr(str string) error {
-	if _, err := w.shstrtab.WriteString(str); err != nil {
-		return err
-	}
-
-	return w.shstrtab.WriteByte(0)
-}
-
-func (w *Writer) writeHeader() error {
-	return binary.Write(w.output, binary.LittleEndian, w.header)
-}
-
 func (w *Writer) writeShstrtab() error {
 	w.header.Shstrndx = uint16(len(w.sections))
-
-	if err := w.writeSectionStr(".shstrtab"); err != nil {
+	if err := w.writeStringTable(".shstrtab", &w.shstrtab); err != nil {
 		return err
 	}
 
-	err := w.WriteSection(Section64{
-		Type:      elf.SHT_STRTAB,
-		Addralign: 1,
-		Code:      []byte(w.shstrtab.String()),
-	})
-	if err != nil {
-		return err
-	}
-
-	w.sections[len(w.sections)-1].Name -= 10
-
-	return nil
+	return w.code.WriteByte(0)
 }
 
-func (w *Writer) writeStrtab() error {
-	if err := w.writeSectionStr(".strtab"); err != nil {
+func (w *Writer) writeStringTable(name string, strings *strings.Builder) error {
+	if _, err := w.shstrtab.WriteString(name); err != nil {
 		return err
 	}
 
 	err := w.WriteSection(Section64{
 		Type:      elf.SHT_STRTAB,
 		Addralign: 1,
-		Code:      []byte(w.strtab.String()),
+		Code:      []byte(strings.String()),
 	})
 	if err != nil {
 		return err
 	}
 
-	w.sections[len(w.sections)-1].Name -= 8
+	w.sections[len(w.sections)-1].Name -= uint32(len(name))
 
 	return nil
 }
@@ -275,7 +244,7 @@ func (w *Writer) finalizeSectionOffsets() {
 }
 
 func (w *Writer) writeSectionHeaders() error {
-	sectHdrs := bytes.NewBuffer([]byte{})
+	sectHdrs := bytes.NewBuffer(make([]byte, 0, Section64Size*len(w.sections)))
 	for _, sect := range w.sections {
 		if err := writeSectToBuffer(sectHdrs, sect); err != nil {
 			return err
@@ -286,9 +255,12 @@ func (w *Writer) writeSectionHeaders() error {
 	return err
 }
 
-func (w *Writer) writeCode() error {
-	_, err := w.code.WriteTo(w.output)
-	return err
+func writeNullStr(builder *strings.Builder, str string) error {
+	if _, err := builder.WriteString(str); err != nil {
+		return err
+	}
+
+	return builder.WriteByte(0)
 }
 
 func writeSectToBuffer(buf *bytes.Buffer, sect elf.Section64) error {
@@ -312,14 +284,14 @@ func writeSymbolToBuffer(buf *bytes.Buffer, symb elf.Sym64) error {
 }
 
 func section64ToBytes(sect elf.Section64) ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{})
+	buf := bytes.NewBuffer(make([]byte, 0, Section64Size))
 	err := binary.Write(buf, binary.LittleEndian, sect)
 
 	return buf.Bytes(), err
 }
 
 func sym64ToBytes(symb elf.Sym64) ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{})
+	buf := bytes.NewBuffer(make([]byte, 0, Symbol64Size))
 	err := binary.Write(buf, binary.LittleEndian, symb)
 
 	return buf.Bytes(), err
