@@ -1,12 +1,13 @@
 # TODOs For a Working Assembler
 
-Currently completed: 31%
+Currently completed: 41%
 
 - [ ] Implement memory pointers in parser and translation. (5%)
 - [X] Connect the parser and translation layers. (5%)
 - [ ] Add ELF object file support. (50%)
   - [X] Outputs correct ELF objects. (25%)
-  - [ ] Add support for symbols. (25%)
+  - [X] Add support for symbols. (10%)
+  - [ ] Add '.rel.text' section encoding (needs memory pointers) (15%)
 - [ ] Support for the original 8086/8088 instructions. (40%)
   - [ ] ADC
   - [ ] ADD
