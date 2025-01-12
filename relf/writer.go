@@ -215,12 +215,6 @@ func (w *Writer) makeSymbolTable() error {
 	})
 }
 
-// func (w *Writer) writeSectionsToSymTab() error {
-//   for sect : range w.sections {
-//
-//   }
-// }
-
 func (w *Writer) writeSectionStr(str string) error {
 	if _, err := w.shstrtab.WriteString(str); err != nil {
 		return err
