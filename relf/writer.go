@@ -56,7 +56,7 @@ type Symbol64 struct {
 	Value uint64
 }
 
-func NewWriter(hdr Header64, writer io.Writer) *Writer {
+func NewWriter(filename string, hdr Header64, writer io.Writer) *Writer {
 	w := Writer{
 		header: elf.Header64{
 			Ident: [elf.EI_NIDENT]byte{
@@ -90,6 +90,16 @@ func NewWriter(hdr Header64, writer io.Writer) *Writer {
 	}
 
 	if err := w.strtab.WriteByte(0); err != nil {
+		panic(err)
+	}
+
+	err := w.WriteSymbol(Symbol64{
+		Name:  filename,
+		Type:  elf.STT_FILE,
+		Bind:  elf.STB_LOCAL,
+		Shndx: uint16(elf.SHN_ABS),
+	})
+	if err != nil {
 		panic(err)
 	}
 

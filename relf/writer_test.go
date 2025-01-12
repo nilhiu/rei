@@ -36,7 +36,7 @@ func TestWriterCorrectness(t *testing.T) {
 		0, '.', 't', 'e', 'x', 't', 0, '.', 's', 'h', 's', 't', 'r', 't', 'a', 'b', 0,
 	}
 
-	w := relf.NewWriter(relf.Header64{
+	w := relf.NewWriter("test.S", relf.Header64{
 		Endian:  elf.ELFDATA2LSB,
 		ABI:     elf.ELFOSABI_NONE,
 		Machine: elf.EM_X86_64,
