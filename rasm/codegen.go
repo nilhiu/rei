@@ -8,6 +8,8 @@ import (
 	"github.com/nilhiu/rei/x86"
 )
 
+// A CodeGen represents an object that turns the expressions parsed by the
+// [Parser], to machine code.
 type CodeGen struct {
 	p       *Parser
 	section string
@@ -15,15 +17,19 @@ type CodeGen struct {
 	labels  map[string]LabelInfo
 }
 
+// A LabelInfo represents information about a label.
 type LabelInfo struct {
-	Section string
-	Offset  uint64
+	Section string // the section the label is located in
+	Offset  uint64 // the offset from the section the label's at
 }
 
+// NewCodeGen creates a new code generator based on the [io.Reader] given to it.
 func NewCodeGen(rd io.Reader) *CodeGen {
 	return NewCodeGenParser(NewParser(rd))
 }
 
+// NewCodeGenParser creates a new code generator based on
+// the [Parser] given to it.
 func NewCodeGenParser(p *Parser) *CodeGen {
 	return &CodeGen{
 		p:       p,
@@ -33,6 +39,9 @@ func NewCodeGenParser(p *Parser) *CodeGen {
 	}
 }
 
+// Next generates machine code for the next [InstrExpr] expression. It returns
+// the machine code itself, the section it's in, and possibly an error. If the
+// file has been fully read, Next will always return a nil slice with no error.
 func (cg *CodeGen) Next() ([]byte, string, error) {
 	for {
 		expr := cg.p.Next()
@@ -62,6 +71,8 @@ func (cg *CodeGen) Next() ([]byte, string, error) {
 	}
 }
 
+// Labels returns a map of names to label information of the encountered
+// labels by the [CodeGen].
 func (cg *CodeGen) Labels() map[string]LabelInfo {
 	return cg.labels
 }

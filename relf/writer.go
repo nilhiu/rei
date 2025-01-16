@@ -1,3 +1,9 @@
+// The relf package implements routines to write ELF object files.
+//
+// This package uses a combination of its own definitions of ELF structures,
+// while also utilizing the [debug/elf] package from the standard library.
+// As an example, when writing sections, or symbols, it uses the [Section64],
+// or [Symbol64], but internally it's saved as a [elf.Section64], or [elf.Sym64].
 package relf
 
 import (
@@ -10,11 +16,12 @@ import (
 )
 
 const (
-	Header64Size  = 64
-	Section64Size = 64
-	Symbol64Size  = 24
+	Header64Size  = 64 // the size of an ELF header (64-bit)
+	Section64Size = 64 // the size of an ELF section header (64-bit)
+	Symbol64Size  = 24 // the size of an ELF symbol (64-bit)
 )
 
+// Writer implements an ELF file writer.
 type Writer struct {
 	header elf.Header64
 
@@ -29,6 +36,7 @@ type Writer struct {
 	output io.Writer
 }
 
+// Header64 represents a minified version of the ELF file header.
 type Header64 struct {
 	Endian  elf.Data
 	ABI     elf.OSABI
@@ -36,18 +44,20 @@ type Header64 struct {
 	Flags   uint32
 }
 
+// Section64 represents a extended version of the ELF section.
 type Section64 struct {
-	Name      string
-	Type      elf.SectionType
-	Flags     elf.SectionFlag
-	Addr      uint64
-	Link      uint32
-	Info      uint32
-	Addralign uint64
-	Entsize   uint64
-	Code      []byte
+	Name      string          // the name of the section
+	Type      elf.SectionType // the type of the section
+	Flags     elf.SectionFlag // the flags of the section
+	Addr      uint64          // the virtual address of the beginning of the section
+	Link      uint32          // the index of an associated section
+	Info      uint32          // extra information about the section
+	Addralign uint64          // the required alignment of the section
+	Entsize   uint64          // the size, in bytes, of each entry in the section
+	Code      []byte          // is the code/bytes associated with the section
 }
 
+// Symbol64 represents an ELF symbol.
 type Symbol64 struct {
 	Name  string
 	Type  elf.SymType
@@ -56,6 +66,12 @@ type Symbol64 struct {
 	Value uint64
 }
 
+// New returns a new [Writer] to write an ELF file to the given writer.
+// The filename is the source assembly file's name. It's needed as it has
+// to be encoded into the symbol table.
+//
+// For now, this function doesn't return an error, but instead panics if
+// an error is encountered. This behaviour will most likely change.
 func New(filename string, hdr Header64, writer io.Writer) *Writer {
 	w := Writer{
 		header: elf.Header64{
@@ -106,6 +122,7 @@ func New(filename string, hdr Header64, writer io.Writer) *Writer {
 	return &w
 }
 
+// WriteSection writes the given section internally in the [Writer].
 func (w *Writer) WriteSection(sect Section64) error {
 	w.sections = append(w.sections, elf.Section64{
 		Name:      uint32(w.shstrtab.Len()),
@@ -147,6 +164,7 @@ func (w *Writer) WriteSection(sect Section64) error {
 	return writeNullStr(&w.shstrtab, sect.Name)
 }
 
+// WriteSymbol writes the given symbol internally in the [Writer].
 func (w *Writer) WriteSymbol(symb Symbol64) error {
 	w.symbols = append(w.symbols, elf.Sym64{
 		Name:  uint32(w.strtab.Len()),
@@ -159,6 +177,8 @@ func (w *Writer) WriteSymbol(symb Symbol64) error {
 	return writeNullStr(&w.strtab, symb.Name)
 }
 
+// Flush compiles the written ELF file in the [Writer] to bytes and writes
+// it into the output.
 func (w *Writer) Flush() error {
 	if err := w.makeSymbolTable(); err != nil {
 		return err

@@ -2,6 +2,7 @@ package x86
 
 import "encoding/binary"
 
+// An Address represents a SIB + displacement encoding of a memory address.
 type Address struct {
 	Scale        byte
 	Index        Register
@@ -9,6 +10,7 @@ type Address struct {
 	Displacement uint32
 }
 
+// EncodeSib encodes the [Address] as an SIB byte.
 func (a Address) EncodeSib() byte {
 	if a.isNil() {
 		return 0x25

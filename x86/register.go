@@ -1,7 +1,10 @@
 package x86
 
+// A Register represents an x86 register.
 type Register uint
 
+// EncodeByte encodes a register as a byte. The values given to the register
+// come from the definition of the reg field in the modr/m byte.
 func (reg Register) EncodeByte() byte {
 	switch reg {
 	case AL, AX, EAX, RAX, R8B, R8W, R8D, R8:
@@ -27,6 +30,7 @@ func (reg Register) EncodeByte() byte {
 	}
 }
 
+// Size returns the size, in bits, of the register.
 func (reg Register) Size() uint {
 	switch reg {
 	case AL, CL, DL, BL, SIL, DIL, SPL, BPL, R8B, R9B, R10B,
@@ -45,7 +49,7 @@ func (reg Register) Size() uint {
 	panic("unreachable")
 }
 
-// Reports if the register requires an REX prefix to be encoded.
+// IsRex reports if the register requires an REX prefix to be encoded.
 func (reg Register) IsRex() bool {
 	switch reg {
 	case RAX, RCX, RDX, RBX, RSI, RDI, RSP, RBP, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W,
@@ -57,7 +61,8 @@ func (reg Register) IsRex() bool {
 	}
 }
 
-// Reports if the register needs REX.B set (also used to check for the need of REX.R)
+// IsRexB reports if the register needs REX.B set. It can also be used to
+// check for the need of REX.R.
 func (reg Register) IsRexB() bool {
 	switch reg {
 	case R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
@@ -68,7 +73,7 @@ func (reg Register) IsRexB() bool {
 	}
 }
 
-// Reports if the register can not be encoded if a REX byte is present.
+// IsRexExcluded reports if the register can not be encoded if a REX byte is present.
 func (reg Register) IsRexExcluded() bool {
 	switch reg {
 	case AH, CH, DH, BH:
@@ -87,9 +92,8 @@ func (reg Register) isARegister() bool {
 	}
 }
 
-// Register constants (WIP)
 const (
-	NilReg          = iota
+	NilReg          = iota // should be used if you don't want to specify a register
 	RAX    Register = iota << 5
 	RCX
 	RDX
@@ -164,6 +168,8 @@ const (
 	BH
 )
 
+// RegisterSearchMap maps the string representation of registers to their
+// [Register] counterparts.
 var RegisterSearchMap = map[string]Register{
 	"rax": RAX,
 	"rcx": RCX,

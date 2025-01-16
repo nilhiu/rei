@@ -1,3 +1,10 @@
+// The rasm package implements types and methods to provide lexing, parsing,
+// and code generation for assembly written in rei's syntax.
+//
+// As of now, these types are dependent on eachother, as they work concurrently
+// to assemble a assembly source. This dependence may later be removed for a
+// more "modular" assemblying, such as being able to programatically generate
+// code without using the lexer.
 package rasm
 
 import (
@@ -9,64 +16,81 @@ import (
 	"github.com/nilhiu/rei/x86"
 )
 
+// Position is the representation of line and column positioning
+// in a source file.
 type Position struct {
 	Line uint
 	Col  uint
 }
 
+// A TokenID is the type of a [Token].
 type TokenID uint
 
 const (
-	EOF TokenID = iota
-	Illegal
-	Instruction
-	Register
-	Section
-	Comma
-	Colon
-	Newline
+	EOF         TokenID = iota // represents the end of file
+	Illegal                    // represents an illegal/unknown character
+	Instruction                // represents an instruction
+	Register                   // reqpresents an register
+	Section                    // represents the section keyword
+	Comma                      // represents the character ','
+	Colon                      // represents the character ':'
+	Newline                    // represents a newline
 
-	Identifier
-	Hex
-	Octal
-	Decimal
+	Identifier // represents an identifier/name
+	Hex        // represents a hexadecimal number
+	Octal      // represents an octal number
+	Decimal    // represents a decimal number
 )
 
-// The `id` field contains the above `TokenId` constants in the first 5 bits,
-// and in the cases of `Instruction` and `Register` the upper 27 (or 59 if 64-bit)
-// bits contains the instruction/register identifiers.
+// Token represents the output of the [Lexer], containing information
+// about the lexed input.
 type Token struct {
 	pos Position
-	id  TokenID
+	// id contains the above `TokenID` constants in the first 5 bits,
+	// and in the cases of `Instruction` and `Register` the rest contains the
+	// instruction/register identifiers.
+	id TokenID
+	// raw contains the string lexed by the lexer.
 	raw string
 }
 
+// NewToken creates a new token based on the given parameters.
+// Possibly will be removed as it seems quite unnecessary.
 func NewToken(pos Position, id TokenID, raw string) Token {
 	return Token{pos, id, raw}
 }
 
+// Pos returns the [Position] saved in the token.
 func (t *Token) Pos() Position {
 	return t.pos
 }
 
+// ID returns the [TokenID] of the token.
 func (t *Token) ID() TokenID {
 	return t.id & 0x1f
 }
 
+// SpecID returns a "special" ID of the token. Should only be used for [Token]'s of
+// type [Instruction] or [Register], otherwise it will, and should, always
+// return zero.
 func (t *Token) SpecID() uint {
 	return (uint(t.id) >> 5) << 5
 }
 
+// Raw returns the raw string of the token lexed by the lexer.
 func (t *Token) Raw() string {
 	return t.raw
 }
 
+// A Lexer is object which turns the source file into tokens, which are
+// used by the [Parser].
 type Lexer struct {
 	rd  *bufio.Reader
 	pos Position
 	sb  strings.Builder
 }
 
+// NewLexer create a new [Lexer] based on the [io.Reader] given to it.
 func NewLexer(rd io.Reader) *Lexer {
 	return &Lexer{
 		rd:  bufio.NewReader(rd),
@@ -75,6 +99,9 @@ func NewLexer(rd io.Reader) *Lexer {
 	}
 }
 
+// Next lexes and returns the next token in the source file. If the file
+// has been fully lexed, Next will always return a token with the [EOF]
+// [TokenID].
 func (l *Lexer) Next() Token {
 	for {
 		pos := l.pos

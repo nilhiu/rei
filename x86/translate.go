@@ -1,3 +1,5 @@
+// The x86 package implements trnaslation from user-readable assembly to
+// x86 instructions.
 package x86
 
 import (
@@ -5,6 +7,9 @@ import (
 	"slices"
 )
 
+// Translate translates the provided mnemonic and operands into x86 machine
+// code. An error can occur if the given mnemonic is unknown, or if the given
+// operands don't match what the mnemonic should be given.
 func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 	fmt := mnemToFmt(mnem)
 	if fmt == nil {
