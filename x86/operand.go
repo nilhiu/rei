@@ -39,5 +39,5 @@ func (a Address) Type() OpType {
 }
 
 func (a Address) Value() uint {
-	return uint(a.EncodeSib())
+	return uint(a.EncodeSIB())
 }

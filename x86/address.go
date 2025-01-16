@@ -10,8 +10,8 @@ type Address struct {
 	Displacement uint32
 }
 
-// EncodeSib encodes the [Address] as an SIB byte.
-func (a Address) EncodeSib() byte {
+// EncodeSIB encodes the [Address] as an SIB byte.
+func (a Address) EncodeSIB() byte {
 	if a.isNil() {
 		return 0x25
 	}

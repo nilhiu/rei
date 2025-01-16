@@ -66,7 +66,7 @@ func genericRegReg(
 
 	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte(), 0b11)
 
-	if (reg1.IsRex() || reg2.IsRex()) && (reg1.IsRexExcluded() || reg2.IsRexExcluded()) {
+	if (reg1.IsREX() || reg2.IsREX()) && (reg1.IsREXExcluded() || reg2.IsREXExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
 
@@ -79,7 +79,7 @@ func genericRegAddr(
 	addr Address,
 ) ([]byte, error) {
 	// TODO: check @addr.size == reg.size
-	if reg.IsRex() && reg.IsRexExcluded() {
+	if reg.IsREX() && reg.IsREXExcluded() {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
 
@@ -87,7 +87,7 @@ func genericRegAddr(
 	if addr.isSIB() {
 		// Set ModR/M byte's R/M field to 4 (0b100) as SIB is to be encoded.
 		opcode[len(opcode)-1] = (opcode[len(opcode)-1] & 0b11111000) | 0b100
-		opcode = append(opcode, addr.EncodeSib())
+		opcode = append(opcode, addr.EncodeSIB())
 	}
 
 	if addr.Displacement != 0 {
@@ -150,7 +150,7 @@ func prefixRR(reg1 Register, reg2 Register) []byte {
 		prefix = []byte{0x66}
 	}
 
-	if reg1.IsRex() || reg2.IsRex() {
+	if reg1.IsREX() || reg2.IsREX() {
 		prefix = append(prefix, encodeRexRR(reg1, reg2))
 	}
 
@@ -164,7 +164,7 @@ func prefixR(reg Register) []byte {
 		prefix = []byte{0x66}
 	}
 
-	if reg.IsRex() {
+	if reg.IsREX() {
 		prefix = append(prefix, encodeRexR(reg))
 	}
 
@@ -199,11 +199,11 @@ func encodeRexR(reg Register) byte {
 func encodeRexRR(reg1 Register, reg2 Register) byte {
 	var rex byte = 0x40
 
-	if reg1.IsRexB() {
+	if reg1.IsREXB() {
 		rex |= 0x01
 	}
 
-	if reg2.IsRexB() {
+	if reg2.IsREXB() {
 		rex |= 0x04
 	}
 

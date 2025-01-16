@@ -49,8 +49,8 @@ func (reg Register) Size() uint {
 	panic("unreachable")
 }
 
-// IsRex reports if the register requires an REX prefix to be encoded.
-func (reg Register) IsRex() bool {
+// IsREX reports if the register requires an REX prefix to be encoded.
+func (reg Register) IsREX() bool {
 	switch reg {
 	case RAX, RCX, RDX, RBX, RSI, RDI, RSP, RBP, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W,
 		R9W, R10W, R11W, R12W, R13W, R14W, R15W, R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D, R8, R9,
@@ -61,9 +61,9 @@ func (reg Register) IsRex() bool {
 	}
 }
 
-// IsRexB reports if the register needs REX.B set. It can also be used to
+// IsREXB reports if the register needs REX.B set. It can also be used to
 // check for the need of REX.R.
-func (reg Register) IsRexB() bool {
+func (reg Register) IsREXB() bool {
 	switch reg {
 	case R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
 		R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D, R8, R9, R10, R11, R12, R13, R14, R15:
@@ -73,8 +73,8 @@ func (reg Register) IsRexB() bool {
 	}
 }
 
-// IsRexExcluded reports if the register can not be encoded if a REX byte is present.
-func (reg Register) IsRexExcluded() bool {
+// IsREXExcluded reports if the register can not be encoded if a REX byte is present.
+func (reg Register) IsREXExcluded() bool {
 	switch reg {
 	case AH, CH, DH, BH:
 		return true
