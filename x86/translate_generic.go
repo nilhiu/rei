@@ -3,10 +3,16 @@ package x86
 import (
 	"encoding/binary"
 	"errors"
+
+	"github.com/nilhiu/rei/rasm/codegen"
 )
 
-func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateFunc) translateFunc {
-	return func(ops []Operand) ([]byte, error) {
+func pIf(
+	pred func(ops []codegen.Operand) bool,
+	then translateFunc,
+	otherwise translateFunc,
+) translateFunc {
+	return func(ops []codegen.Operand) ([]byte, error) {
 		if pred(ops) {
 			return then(ops)
 		}
@@ -15,43 +21,49 @@ func pIf(pred func(ops []Operand) bool, then translateFunc, otherwise translateF
 	}
 }
 
-func gRR(base []byte, mustSameSize bool) func([]Operand) ([]byte, error) {
-	return func(ops []Operand) ([]byte, error) {
-		return genericRegReg(base, mustSameSize, ops[0].(Register), ops[1].(Register))
+func gRR(base []byte, mustSameSize bool) func([]codegen.Operand) ([]byte, error) {
+	return func(ops []codegen.Operand) ([]byte, error) {
+		return genericRegReg(
+			base,
+			mustSameSize,
+			Register(ops[0].Value().(uint32)),
+			Register(ops[1].Value().(uint32)),
+		)
 	}
 }
 
-func gRI(base []byte, class byte, immFmt immFmt) func([]Operand) ([]byte, error) {
-	return func(ops []Operand) ([]byte, error) {
-		return genericRegImm(base, class, immFmt, ops[0].(Register), ops[1].(Immediate))
+func gRI(base []byte, class byte, immFmt immFmt) func([]codegen.Operand) ([]byte, error) {
+	return func(ops []codegen.Operand) ([]byte, error) {
+		return genericRegImm(
+			base,
+			class,
+			immFmt,
+			Register(ops[0].Value().(uint32)),
+			Immediate(ops[1].Value().(uint64)),
+		)
 	}
 }
 
-func gRA(base []byte) func([]Operand) ([]byte, error) {
-	return func(ops []Operand) ([]byte, error) {
-		return genericRegAddr(base, ops[0].(Register), ops[1].(Address))
+// TODO: addresses not yet implemented in CodeGen.
+func gRA(base []byte) func([]codegen.Operand) ([]byte, error) {
+	return func(ops []codegen.Operand) ([]byte, error) {
+		return genericRegSIBAddr(
+			base,
+			Register(ops[0].Value().(uint32)),
+			ops[1].Value().(*codegen.SIBAddressing),
+		)
 	}
 }
 
-func cRI(base []byte, immFmt immFmt) func([]Operand) ([]byte, error) {
-	return func(ops []Operand) ([]byte, error) {
-		return compressedRegImm(base, immFmt, ops[0].(Register), ops[1].(Immediate))
+func cRI(base []byte, immFmt immFmt) func([]codegen.Operand) ([]byte, error) {
+	return func(ops []codegen.Operand) ([]byte, error) {
+		return compressedRegImm(
+			base,
+			immFmt,
+			Register(ops[0].Value().(uint32)),
+			Immediate(ops[1].Value().(uint64)),
+		)
 	}
-}
-
-func genericRegImm(
-	base []byte,
-	class byte,
-	immFmt immFmt,
-	reg Register,
-	imm Immediate,
-) ([]byte, error) {
-	immBytes, err := translateImmByFmt(imm.Value(), reg, immFmt)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(genericReg(base, reg, class), immBytes...), nil
 }
 
 func genericRegReg(
@@ -64,36 +76,60 @@ func genericRegReg(
 		return nil, errors.New("given registers must be the same size")
 	}
 
-	opcode := genericRegNoPrefix(base, reg1, reg2.EncodeByte(), 0b11)
+	opcode := genericRegNoPrefix(base, reg1, reg2.Code(), 0b11)
 
-	if (reg1.IsREX() || reg2.IsREX()) && (reg1.IsREXExcluded() || reg2.IsREXExcluded()) {
+	if (reg1.isRexRequired() || reg2.isRexRequired()) &&
+		(reg1.isRexExcluded() || reg2.isRexExcluded()) {
 		return nil, errors.New("given register cannot be encoded with a REX prefix")
 	}
 
 	return append(prefixRR(reg1, reg2), opcode...), nil
 }
 
-func genericRegAddr(
+func genericRegImm(
 	base []byte,
+	class byte,
+	immFmt immFmt,
 	reg Register,
-	addr Address,
+	imm Immediate,
 ) ([]byte, error) {
-	// TODO: check @addr.size == reg.size
-	if reg.IsREX() && reg.IsREXExcluded() {
-		return nil, errors.New("given register cannot be encoded with a REX prefix")
+	immBytes, err := translateImmByFmt(imm.Value().(uint64), reg, immFmt)
+	if err != nil {
+		return nil, err
 	}
 
-	opcode := genericRegNoPrefix(base, addr.Base, reg.EncodeByte(), addr.mod())
-	if addr.isSIB() {
+	return append(genericReg(base, reg, class), immBytes...), nil
+}
+
+func genericRegSIBAddr(
+	base []byte,
+	reg Register,
+	addr *codegen.SIBAddressing,
+) ([]byte, error) {
+	// TODO: check @addr.size == reg.size
+	// if reg.isRexRequired() && reg.isRexExcluded() {
+	// 	return nil, errors.New("given register cannot be encoded with a REX prefix")
+	// }
+
+	opcode := genericRegNoPrefix(base, Register(addr.Base), reg.Code(), sibMod(addr))
+	if addr.Scale > 1 || addr.Index != 0 {
 		// Set ModR/M byte's R/M field to 4 (0b100) as SIB is to be encoded.
 		opcode[len(opcode)-1] = (opcode[len(opcode)-1] & 0b11111000) | 0b100
-		opcode = append(opcode, addr.EncodeSIB())
+
+		sib, err := encodeSIB(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		opcode = append(opcode, sib)
 	}
 
 	if addr.Displacement != 0 {
-		opcode = append(opcode, addr.disp()...)
-	} else if addr.isNil() { // HACK: Will be used for reallocation table. May change.
-		opcode = append(opcode, 0, 0, 0, 0)
+		if addr.Displacement <= 0x7f {
+			opcode = append(opcode, byte(addr.Displacement))
+		} else {
+			opcode = binary.LittleEndian.AppendUint32(opcode, uint32(addr.Displacement))
+		}
 	}
 
 	return append(prefixR(reg), opcode...), nil
@@ -116,12 +152,12 @@ func genericRegNoPrefix(base []byte, reg Register, class byte, mod byte) []byte 
 	}
 
 	if class == opFmtClassCompactReg {
-		opcode[len(opcode)-1] += reg.EncodeByte()
+		opcode[len(opcode)-1] += reg.Code()
 
 		return opcode
 	}
 
-	return append(opcode, encodeModRM(mod, class&0b111, reg.EncodeByte()))
+	return append(opcode, encodeModRM(mod, class&0b111, reg.Code()))
 }
 
 func compressedRegImm(
@@ -130,7 +166,7 @@ func compressedRegImm(
 	reg Register,
 	imm Immediate,
 ) ([]byte, error) {
-	immBytes, err := translateImmByFmt(imm.Value(), reg, immFmt)
+	immBytes, err := translateImmByFmt(imm.Value().(uint64), reg, immFmt)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +186,7 @@ func prefixRR(reg1 Register, reg2 Register) []byte {
 		prefix = []byte{0x66}
 	}
 
-	if reg1.IsREX() || reg2.IsREX() {
+	if reg1.isRexRequired() || reg2.isRexRequired() {
 		prefix = append(prefix, encodeRexRR(reg1, reg2))
 	}
 
@@ -164,14 +200,14 @@ func prefixR(reg Register) []byte {
 		prefix = []byte{0x66}
 	}
 
-	if reg.IsREX() {
+	if reg.isRexRequired() {
 		prefix = append(prefix, encodeRexR(reg))
 	}
 
 	return prefix
 }
 
-func translateImmByFmt(imm uint, reg Register, immFmt immFmt) ([]byte, error) {
+func translateImmByFmt(imm uint64, reg Register, immFmt immFmt) ([]byte, error) {
 	sz := immFmt.getBySize(reg.Size())
 
 	switch sz {
@@ -199,11 +235,11 @@ func encodeRexR(reg Register) byte {
 func encodeRexRR(reg1 Register, reg2 Register) byte {
 	var rex byte = 0x40
 
-	if reg1.IsREXB() {
+	if reg1.isRexBRequired() {
 		rex |= 0x01
 	}
 
-	if reg2.IsREXB() {
+	if reg2.isRexBRequired() {
 		rex |= 0x04
 	}
 
@@ -212,4 +248,32 @@ func encodeRexRR(reg1 Register, reg2 Register) byte {
 	}
 
 	return rex
+}
+
+func encodeSIB(addr *codegen.SIBAddressing) (byte, error) {
+	var scale byte
+	switch addr.Scale {
+	case 1:
+		scale = 0b00
+	case 2:
+		scale = 0b01
+	case 4:
+		scale = 0b10
+	case 8:
+		scale = 0b11
+	default:
+		return 0, errors.New("encodeSIB(): invalid addressing scale")
+	}
+
+	return scale<<6 | Register(addr.Index).Code()<<3 | Register(addr.Base).Code(), nil
+}
+
+func sibMod(addr *codegen.SIBAddressing) byte {
+	if addr.Displacement == 0 {
+		return 0
+	} else if addr.Displacement <= 0x7f {
+		return 0b01
+	}
+
+	return 0b10
 }

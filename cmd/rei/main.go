@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"debug/elf"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,8 +12,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/nilhiu/rei/rasm"
+	"github.com/nilhiu/rei/rasm/codegen"
+	"github.com/nilhiu/rei/rasm/lexer"
+	"github.com/nilhiu/rei/rasm/parser"
 	"github.com/nilhiu/rei/relf"
+	"github.com/nilhiu/rei/x86"
 	"github.com/urfave/cli/v3"
 )
 
@@ -97,23 +101,31 @@ func assembleBinary(input string, output string) bool {
 	}
 	defer fout.Close()
 
-	cg := rasm.NewCodeGen(fin)
+	l := lexer.New(input, fin, &x86.IDMap{})
+	p := parser.New(l)
+	cg := codegen.New(p, &x86.Translator{})
+
 	for {
-		bs, _, err := cg.Next()
+		code, err := cg.Next()
 		if err != nil {
+			if errors.Is(err, lexer.ErrEOF) {
+				break
+			}
 			printErr(err.Error())
 			return false
 		}
 
-		if bs == nil {
+		if code.Bytes() == nil {
 			return true
 		}
 
-		_, err = fout.Write(bs)
+		_, err = fout.Write(code.Bytes())
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	return true
 }
 
 // TODO: Find a clearer way to do this...
@@ -133,22 +145,28 @@ func assembleELF(input string, output string) bool {
 	sectCode := map[string]*bytes.Buffer{}
 	sectIndex := map[string]uint16{}
 
-	cg := rasm.NewCodeGen(fin)
+	l := lexer.New(input, fin, &x86.IDMap{})
+	p := parser.New(l)
+	cg := codegen.New(p, &x86.Translator{})
+
 	for {
-		bs, sect, err := cg.Next()
+		code, err := cg.Next()
 		if err != nil {
+			if errors.Is(err, lexer.ErrEOF) {
+				break
+			}
 			printErr(err.Error())
 			return false
 		}
 
-		if bs == nil {
+		if code.Bytes() == nil {
 			break
 		}
 
-		if buf, ok := sectCode[sect]; !ok {
-			sectCode[sect] = bytes.NewBuffer(bs)
+		if buf, ok := sectCode[code.Section()]; !ok {
+			sectCode[code.Section()] = bytes.NewBuffer(code.Bytes())
 		} else {
-			buf.Write(bs)
+			buf.Write(code.Bytes())
 		}
 	}
 

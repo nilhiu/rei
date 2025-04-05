@@ -1,7 +1,7 @@
 package x86
 
 // A Mnemonic is a x86 assembly mnemonic/instruction
-type Mnemonic uint
+type Mnemonic uint32
 
 const (
 	_            = iota

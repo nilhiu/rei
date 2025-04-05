@@ -1,29 +1,33 @@
-// The x86 package implements trnaslation from user-readable assembly to
+// The x86 package implements translation from user-readable assembly to
 // x86 instructions.
 package x86
 
 import (
 	"errors"
 	"slices"
+
+	"github.com/nilhiu/rei/rasm/codegen"
 )
+
+type Translator struct{}
 
 // Translate translates the provided mnemonic and operands into x86 machine
 // code. An error can occur if the given mnemonic is unknown, or if the given
 // operands don't match what the mnemonic should be given.
-func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
-	fmt := mnemToFmt(mnem)
-	if fmt == nil {
+func (t *Translator) Translate(instrID uint32, ops ...codegen.Operand) ([]byte, error) {
+	format := mnemToFmt(Mnemonic(instrID))
+	if format == nil {
 		return nil, errors.New("unknown mnemonic encountered")
 	}
 
-	opTypes := []OpType{}
+	opTypes := []codegen.OperandType{}
 	for _, op := range ops {
 		opTypes = append(opTypes, op.Type())
 	}
 
 	ix := ^uint(0)
 
-	for i, typ := range fmt.operands {
+	for i, typ := range format.operands {
 		if slices.Compare(typ, opTypes) == 0 {
 			ix = uint(i)
 
@@ -35,7 +39,7 @@ func Translate(mnem Mnemonic, ops ...Operand) ([]byte, error) {
 		return nil, errors.New("given operands for this mnemonic are unsupported")
 	}
 
-	return fmt.translates[ix](ops)
+	return format.translates[ix](ops)
 }
 
 func mnemToFmt(mnem Mnemonic) *opFmt {
@@ -50,9 +54,9 @@ func mnemToFmt(mnem Mnemonic) *opFmt {
 	case MOV:
 		return newOpFmt().
 			withClass(opFmtClassCompactReg).
-			addRI([]byte{0xB0}, immFmtNative).
+			addRI([]byte{0xb0}, immFmtNative).
 			addRR([]byte{0x88}, true).
-			addRA([]byte{0x8A})
+			addRA([]byte{0x8a})
 	}
 
 	return nil

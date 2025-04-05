@@ -1,12 +1,22 @@
 package x86
 
-// A Register represents an x86 register.
-type Register uint
+import "github.com/nilhiu/rei/rasm/codegen"
 
-// EncodeByte encodes a register as a byte. The values given to the register
-// come from the definition of the reg field in the modr/m byte.
-func (reg Register) EncodeByte() byte {
-	switch reg {
+// A Register represents an x86 register.
+type Register uint32
+
+func (r Register) Type() codegen.OperandType {
+	return codegen.OpTypeRegister
+}
+
+func (r Register) Value() any {
+	return uint32(r)
+}
+
+// Code gives the register's register number/code. The values given to the
+// register come from the definition of the r field in the modr/m byte.
+func (r Register) Code() byte {
+	switch r {
 	case AL, AX, EAX, RAX, R8B, R8W, R8D, R8:
 		return 0
 	case CL, CX, ECX, RCX, R9B, R9W, R9D, R9:
@@ -26,13 +36,13 @@ func (reg Register) EncodeByte() byte {
 	case NilReg:
 		return 0
 	default:
-		panic("given register is unsupported ")
+		panic("given register is unsupported")
 	}
 }
 
 // Size returns the size, in bits, of the register.
-func (reg Register) Size() uint {
-	switch reg {
+func (r Register) Size() uint {
+	switch r {
 	case AL, CL, DL, BL, SIL, DIL, SPL, BPL, R8B, R9B, R10B,
 		R11B, R12B, R13B, R14B, R15B, AH, CH, DH, BH:
 		return 8
@@ -49,9 +59,9 @@ func (reg Register) Size() uint {
 	panic("unreachable")
 }
 
-// IsREX reports if the register requires an REX prefix to be encoded.
-func (reg Register) IsREX() bool {
-	switch reg {
+// isRexRequired reports if the register requires an REX prefix to be encoded.
+func (r Register) isRexRequired() bool {
+	switch r {
 	case RAX, RCX, RDX, RBX, RSI, RDI, RSP, RBP, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W,
 		R9W, R10W, R11W, R12W, R13W, R14W, R15W, R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D, R8, R9,
 		R10, R11, R12, R13, R14, R15, SIL, DIL, SPL, BPL:
@@ -61,10 +71,10 @@ func (reg Register) IsREX() bool {
 	}
 }
 
-// IsREXB reports if the register needs REX.B set. It can also be used to
-// check for the need of REX.R.
-func (reg Register) IsREXB() bool {
-	switch reg {
+// isRexBRequired reports if the register needs REX.B set. It can also be used
+// to check for the need of REX.R.
+func (r Register) isRexBRequired() bool {
+	switch r {
 	case R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
 		R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D, R8, R9, R10, R11, R12, R13, R14, R15:
 		return true
@@ -73,9 +83,9 @@ func (reg Register) IsREXB() bool {
 	}
 }
 
-// IsREXExcluded reports if the register can not be encoded if a REX byte is present.
-func (reg Register) IsREXExcluded() bool {
-	switch reg {
+// isRexExcluded reports if the register can not be encoded if a REX byte is present.
+func (r Register) isRexExcluded() bool {
+	switch r {
 	case AH, CH, DH, BH:
 		return true
 	default:
@@ -83,8 +93,9 @@ func (reg Register) IsREXExcluded() bool {
 	}
 }
 
-func (reg Register) isARegister() bool {
-	switch reg {
+// isARegister reports if the register is a "A-class" (AL, AX, EAX, RAX) register.
+func (r Register) isARegister() bool {
+	switch r {
 	case AL, AX, EAX, RAX:
 		return true
 	default:
